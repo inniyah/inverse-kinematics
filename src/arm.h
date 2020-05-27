@@ -9,7 +9,7 @@ class Arm {
         vector<Segment*> segments;
         Point3f base;
 
-        Matrix<float,1,3> compute_jacovian_segment(int seg_num, Point3f goal_point, Vector3f angle);
+        Matrix<float,1,3> compute_jacobian_segment(int seg_num, Point3f goal_point, Vector3f angle);
 
         // computes end_effector up to certain number of segments
         Point3f calculate_end_effector(int segment_num = -1);

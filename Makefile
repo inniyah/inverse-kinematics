@@ -5,7 +5,7 @@ CXX= g++
 RM= rm -f
 
 PKGCONFIG= pkg-config
-PACKAGES= eigen3 gl glu
+PACKAGES= eigen3 gl glu glui
 
 ifndef PACKAGES
 PKG_CONFIG_CFLAGS=

@@ -3,8 +3,6 @@
 #include <cmath>
 #include <GL/gl.h>
 
-#define PI 3.14159265359
-
 Segment::Segment() {
     T = T.Identity();
 }
@@ -16,7 +14,7 @@ Segment::Segment(float magnitude, JointType jt) : Segment() {
 
 Segment::Segment(const Vector3f &v, JointType jt) {
     Vector3f vn = v.normalized();
-    T = AngleAxisf( acos(vn.dot(Vector3f::UnitZ())), vn.cross(Vector3f::UnitZ()) );
+    T = AngleAxisf( -acos(vn.dot(Vector3f::UnitZ())), vn.cross(Vector3f::UnitZ()) );
     mag = sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
     joint = jt;
 }
@@ -49,14 +47,14 @@ Point3f Segment::draw(Point3f start_point, int seg_count) {
     // translate the end point to the start point
     a2 += start_point;
 
-    float scale = 0.3f;
+    float scale = 0.1f * mag;
 
     // number of segments to divide the draw polygon into
     for (int i=0; i<seg_count; i++) {
         // a0 and a1 are points on the unit circle divided by seg_count
         // a0 is i+1 so the points go in counter-clockwise order
-        a0 = Point3f(scale*cos(i*(2*PI/seg_count)), scale*sin(i*(2*PI/seg_count)), 0);
-        a1 = Point3f(scale*cos((i+1)*(2*PI/seg_count)), scale*sin((i+1)*(2*PI/seg_count)), 0);
+        a0 = Point3f(scale*cos(i*(2 * M_PI/seg_count)), scale*sin(i*(2 * M_PI/seg_count)), 0);
+        a1 = Point3f(scale*cos((i+1)*(2 * M_PI/seg_count)), scale*sin((i+1)*(2 * M_PI/seg_count)), 0);
 
         // scale appropriately
 
@@ -148,6 +146,5 @@ void Segment::reset() {
 }
 
 void Segment::randomize() {
-    // randomize
-    T = AngleAxisf(PI/2, Vector3f::Random()) * T;
+    T = AngleAxisf(M_PI / 2., Vector3f::Random()) * T;
 }

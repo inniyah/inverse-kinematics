@@ -51,6 +51,7 @@ class Segment {
 
         // clear transformations
         void reset();
+
         // randomize transformation
         void randomize();
 
