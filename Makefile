@@ -1,48 +1,81 @@
-# CONFIGURATION
-PROJECT := inverse-k	
-TESTBUILD := itester
+#!/usr/bin/make -f
 
-CC := g++
-CCFLAGS := -Ilib -Wall -O3
-ifeq ($(shell sw_vers 2>/dev/null | grep Mac | awk '{ print $$2}'),Mac)
-	# CFLAGS = -g -DGL_GLEXT_PROTOTYPES -I./include/ -I/usr/X11/include -DOSX
-	LDFLAGS = -framework GLUT -framework OpenGL \
-    	-L"/System/Library/Frameworks/OpenGL.framework/Libraries" \
-    	-lGL -lGLU -lm -lstdc++
+CC= gcc
+CXX= g++
+RM= rm -f
+
+PKGCONFIG= pkg-config
+PACKAGES= eigen3 gl glu
+
+ifndef PACKAGES
+PKG_CONFIG_CFLAGS=
+PKG_CONFIG_LDFLAGS=
+PKG_CONFIG_LIBS=
 else
-	# CFLAGS = -g -DGL_GLEXT_PROTOTYPES -Iglut-3.7.6-bin
-	LDFLAGS = -lglu32 -lglut32 -lopengl32
+PKG_CONFIG_CFLAGS=`pkg-config --cflags $(PACKAGES)`
+PKG_CONFIG_LDFLAGS=`pkg-config --libs-only-L $(PACKAGES)`
+PKG_CONFIG_LIBS=`pkg-config --libs-only-l $(PACKAGES)`
 endif
 
-SRCFOLDER := src
-OBJFOLDER := obj
+CFLAGS= \
+	-pedantic \
+	-Wall \
+	-fstack-protector-strong \
+	-D_FORTIFY_SOURCE=2 \
+	-Wno-unused-variable \
+	-Wno-unused-value \
+	-Wno-unused-function \
+	-Wno-unused-but-set-variable
 
-# processing stuff
-SRC := $(wildcard $(SRCFOLDER)/*.cpp)
-OBJ := $(addprefix $(OBJFOLDER)/, $(notdir $(SRC:.cpp=.o)))
+LDFLAGS= \
+	-Wl,--as-needed \
+	-Wl,--no-undefined \
+	-Wl,--no-allow-shlib-undefined
 
-ifeq ($(OS), Windows_NT)
-	RM = del /F
-	DELETEOBJS = $(OBJFOLDER)\*.o $(PROJECT).exe
-else
-	RM = rm -f
-	DELETEOBJS = $(OBJFOLDER)/*.o $(PROJECT)
-endif
+CSTD=-std=c11
+CPPSTD=-std=c++11
 
-.PHONY: all clean build
-all: $(PROJECT)
+OPTS= -O2 -g
+
+DEFS=
+
+INCS= \
+	-I.
+
+LIBS= \
+	-lm -lglut
+
+BINARY= Demo
+BINARY_SRCS= \
+	src/arm.cpp  src/main.cpp  src/point.cpp  src/segment.cpp
+BINARY_OBJS= $(subst .cpp,.o,$(BINARY_SRCS))
+
+all: $(BINARY)
+
+$(BINARY): $(BINARY_OBJS)
+	$(CXX) $(CPPSTD) $(CSTD) $(PKG_CONFIG_LDFLAGS) $(LDFLAGS) -o $@ $(BINARY_OBJS) $(PKG_CONFIG_LIBS) $(LIBS)
+
+%.o: %.cpp
+	$(CXX) $(CPPSTD) $(OPTS) -o $@ -c $< $(DEFS) $(INCS) $(PKG_CONFIG_CFLAGS) $(CFLAGS)
+
+%.o: %.cc
+	$(CXX) $(CPPSTD) $(OPTS) -o $@ -c $< $(DEFS) $(INCS) $(PKG_CONFIG_CFLAGS) $(CFLAGS)
+
+%.o: %.c
+	$(CC) $(CSTD) $(OPTS) -o $@ -c $< $(DEFS) $(INCS) $(PKG_CONFIG_CFLAGS) $(CFLAGS)
+
+depend: .depend
+
+.depend: $(BINARY_SRCS)
+	$(RM) ./.depend
+	$(CXX) $(CPPSTD) $(DEFS) $(INCS) $(CFLAGS) -MM $^>>./.depend;
 
 clean:
-	$(RM) $(DELETEOBJS)
-	
-build: clean all
+	$(RM) $(BINARY_OBJS) $(BINARY)
+	$(RM) -fv *~ .depend core *.out *.bak
+	$(RM) -fv *.o *.a *~
+	$(RM) -fv */*.o */*.a */*~
 
+include .depend
 
-
-
-
-# compile targets
-$(PROJECT): $(OBJ)
-	$(CC) $(CCFLAGS) -o $@ $^ $(LDFLAGS)
-$(OBJFOLDER)/%.o: $(SRCFOLDER)/%.cpp
-	$(CC) $(CCFLAGS) -o $@ -c $< 
+.PHONY: all depend clean
