@@ -1,14 +1,21 @@
 #include "segment.h"
 
+#include <cmath>
+
 #define PI 3.14159265359
 
 Segment::Segment() {
     T = T.Identity();
 }
 
-Segment::Segment(float magnitude, JointType jt) {
-    T = T.Identity();
+Segment::Segment(float magnitude, JointType jt) : Segment() {
     mag = magnitude;
+    joint = jt;
+}
+
+Segment::Segment(const Vector3f &v, JointType jt) {
+    T = AngleAxisf( acos(v.dot(Vector3f::UnitZ())), v.cross(Vector3f::UnitZ()) );
+    mag = sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
     joint = jt;
 }
 
@@ -23,16 +30,14 @@ Point3f Segment::get_end_point() {
     return a;
 }
 
-Point3f Segment::draw(Point3f start_point) {
+Point3f Segment::draw(Point3f start_point, int seg_count) {
     Point3f a0, a1, a2;
     Vector3f n0, n1, n2;
-
-    // number of segments to divide the draw polygon into
-    int seg_count = 5;
 
     // calculate the end point of the segment
     // start with vector going into the Z direction
     a2 = Point3f(0, 0, mag);
+
     // transform into the rotation of the segment
     a2 = T * a2;
 
@@ -42,7 +47,9 @@ Point3f Segment::draw(Point3f start_point) {
     // translate the end point to the start point
     a2 += start_point;
 
-    float scale = 0.5f;
+    float scale = 0.3f;
+
+    // number of segments to divide the draw polygon into
     for (int i=0; i<seg_count; i++) {
         // a0 and a1 are points on the unit circle divided by seg_count
         // a0 is i+1 so the points go in counter-clockwise order

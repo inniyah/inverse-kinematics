@@ -1,10 +1,18 @@
 #include "include.h"
 #include "arm.h"
 #include "point.h"
+#include "segment.h"
+
+#include <string>
+#include <map> 
 
 #define PI 3.14159265359
 
+std::map<std::string, vector<Segment*> > readSkeletonFile(const std::string &filename);
+
 using namespace std;
+
+static std::map<std::string, Arm> arms;
 
 Arm mainArm;
 Arm secArm;
@@ -18,17 +26,17 @@ GLdouble eyeY=-15;
 GLdouble eyeZ=2.0;
 
 void display() {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);				// clear the color buffer
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the color buffer
 
     // set camera parameters
-	GLdouble centerX=eyeX;
-	GLdouble centerY=eyeY+1;
-	GLdouble centerZ=eyeZ;
-	GLdouble upX=0.;
-	GLdouble upY=0.;
-	GLdouble upZ=1.;
+    GLdouble centerX=eyeX;
+    GLdouble centerY=eyeY+1;
+    GLdouble centerZ=eyeZ;
+    GLdouble upX=0.;
+    GLdouble upY=0.;
+    GLdouble upZ=1.;
 
-    glMatrixMode(GL_MODELVIEW);			        // indicate we are specifying camera transformations
+    glMatrixMode(GL_MODELVIEW); // indicate we are specifying camera transformations
     glLoadIdentity();
 
     gluLookAt(eyeX,eyeY,eyeZ,
@@ -40,8 +48,11 @@ void display() {
     gluPerspective(60, 1, 1, 100);
 
     // drawing is done here
-    mainArm.draw();
-    secArm.draw();
+    for (auto it = arms.begin(); it != arms.end(); it++) {
+        std::string key = it->first;
+        Arm & arm = it->second;
+        arm.draw();
+    }
 
     float c = 0.2;
     Point3f a0 = goal + Vector3f(-c, 0, c);
@@ -68,7 +79,7 @@ void display() {
     // end drawing
 
     glFlush();
-    glutSwapBuffers();					// swap buffers (we earlier set double buffer)
+    glutSwapBuffers(); // swap buffers (we earlier set double buffer)
 }
 
 void update() {
@@ -177,38 +188,18 @@ void handleSpecialKeyReleased(int key, int x, int y) {
 }
 
 int main(int argc, char* argv[]) {
-	std::cout.rdbuf(0);
+    auto segments = readSkeletonFile("skeletons/human.csv");
 
-    vector<Segment*> segs;
-    Segment *new_seg = new Segment(1, BALLJOINT);
-    segs.push_back(new_seg);
-    new_seg = new Segment(1, BALLJOINT);
-	segs.push_back(new_seg);
-    new_seg = new Segment(1, BALLJOINT);
-    segs.push_back(new_seg);
-    new_seg = new Segment(3.5, BALLJOINT);
-    segs.push_back(new_seg);
-    new_seg = new Segment(2.5, BALLJOINT);
-    segs.push_back(new_seg);
-    new_seg = new Segment(1, BALLJOINT);
-    segs.push_back(new_seg);
+    for (auto it = segments.begin(); it != segments.end(); it++) {
+        std::string key = it->first;
+        std::vector<Segment*> & segs = it->second;
+        arms[key].set_segments(segs);
+    }
 
-    vector<Segment*> segs2;
-    Segment *new_seg2 = new Segment(1, BALLJOINT);
-    segs2.push_back(new_seg2);
-    new_seg2 = new Segment(1, BALLJOINT);
-	segs2.push_back(new_seg2);
-    new_seg2 = new Segment(1, BALLJOINT);
-    segs2.push_back(new_seg2);
-    new_seg2 = new Segment(3.5, BALLJOINT);
-    segs2.push_back(new_seg2);
-    new_seg2 = new Segment(2.5, BALLJOINT);
-    segs2.push_back(new_seg2);
-    new_seg2 = new Segment(1, BALLJOINT);
-    segs2.push_back(new_seg2);
+    mainArm.set_segments(segments["lfoot"]);
+    secArm.set_segments(segments["rfoot"]);
 
-    mainArm.set_segments(segs);
-    secArm.set_segments(segs2);
+    std::cout.rdbuf(0);
 
     //This initializes glut
     glutInit(&argc, argv);
@@ -220,32 +211,32 @@ int main(int argc, char* argv[]) {
     glutInitWindowPosition(0, 0);
     glutCreateWindow("Inverse-Kinematics");
 
-    glutDisplayFunc(display);				// function to run when its time to draw something
-    glutReshapeFunc(reshape);				// function to run when the window gets resized
+    glutDisplayFunc(display); // function to run when its time to draw something
+    glutReshapeFunc(reshape); // function to run when the window gets resized
 
     // set handleInput() function to take keyboard events
     glutKeyboardFunc(handleInput);
     glutSpecialFunc(handleSpecialKeypress);
     glutSpecialUpFunc(handleSpecialKeyReleased);
 
-	// shading stuff?
-	glEnable(GL_NORMALIZE);
-	glEnable(GL_LIGHTING);
-	glEnable(GL_DEPTH_TEST);
+    // shading stuff?
+    glEnable(GL_NORMALIZE);
+    glEnable(GL_LIGHTING);
+    glEnable(GL_DEPTH_TEST);
 
-	// random light behind your eyes
-	GLfloat diffuse0[]={1.5, 1.5, 1.5, 1.0};
-	GLfloat ambient0[]={1.0, 1.0, 1.0, 1.0};
-	GLfloat specular0[]={1.0, 1.0, 1.0, 1.0};
-	GLfloat light0_pos[]={-5.0, 0.0, 3.0, 1.0};
+    // random light behind your eyes
+    GLfloat diffuse0[]={1.5, 1.5, 1.5, 1.0};
+    GLfloat ambient0[]={1.0, 1.0, 1.0, 1.0};
+    GLfloat specular0[]={1.0, 1.0, 1.0, 1.0};
+    GLfloat light0_pos[]={-5.0, 0.0, 3.0, 1.0};
 
-	glEnable(GL_LIGHT0);
-	glLightfv(GL_LIGHT0, GL_POSITION, light0_pos);
-	glLightfv(GL_LIGHT0, GL_AMBIENT, ambient0);
-	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse0);
-	glLightfv(GL_LIGHT0, GL_SPECULAR, specular0);
+    glEnable(GL_LIGHT0);
+    glLightfv(GL_LIGHT0, GL_POSITION, light0_pos);
+    glLightfv(GL_LIGHT0, GL_AMBIENT, ambient0);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse0);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, specular0);
 
-    update();
+    //~ update();
 
     glutMainLoop();
 

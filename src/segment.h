@@ -11,6 +11,7 @@ class Segment {
     private:
         // magnitude of the segment
         float mag;
+
         // transformation matrix (rotation) of the segment
         AngleAxisf T, saved_T, last_T;
 
@@ -24,13 +25,14 @@ class Segment {
     public:
         // constructors
         Segment();
-        Segment(float magnitude, JointType jt);
+        Segment(float magnitude, JointType jt = BALLJOINT);
+        Segment(const Vector3f &v, JointType jt = BALLJOINT);
 
         // returns end point in object space
         Point3f get_end_point();
 
         // draw takes in the startpoint and returns the endpoint
-        Point3f draw(Point3f start_point);
+        Point3f draw(Point3f start_point, int seg_count = 5);
 
         Vector3f get_right();
         Vector3f get_up();
