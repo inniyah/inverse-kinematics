@@ -1,7 +1,6 @@
 inverse-kinematics
 ==================
 A ball-joint inverse kinematics solver written in OpenGL and C++. 
-![gif-1](img/gif-1.gif?raw=true)
 
 ## Dependencies
 
