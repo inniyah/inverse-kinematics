@@ -1,5 +1,7 @@
 #include "arm.h"
 
+#include <GL/gl.h>
+
 Arm::Arm() {
     base = Point3f(0,0,0);
 }

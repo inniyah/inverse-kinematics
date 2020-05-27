@@ -6,6 +6,10 @@
 #include <string>
 #include <map> 
 
+#include <GL/gl.h>
+#include <GL/glu.h>
+#include <GL/glut.h>
+
 #define PI 3.14159265359
 
 std::map<std::string, vector<Segment*> > readSkeletonFile(const std::string &filename);

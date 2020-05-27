@@ -1,6 +1,7 @@
 #include "segment.h"
 
 #include <cmath>
+#include <GL/gl.h>
 
 #define PI 3.14159265359
 
