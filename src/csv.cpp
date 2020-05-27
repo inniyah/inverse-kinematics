@@ -146,7 +146,7 @@ std::map<std::string, vector<Segment*> > readSkeletonFile(const std::string &fil
 
             std::cout << "Bone: " << bone_name << " = " << x_coord << ", " << y_coord << ", " << z_coord << "; Parent = " << parent_bone << std::endl;
 
-            positions[bone_name] = Vector3f(x_coord, y_coord, z_coord);
+            positions[bone_name] = Vector3f(x_coord, z_coord, y_coord);
 
             if (parent_bone.length()) {
                 for (unsigned int i = 0; i < segments[parent_bone].size(); i++) 

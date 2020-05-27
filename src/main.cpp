@@ -95,6 +95,7 @@ void update() {
     goal += Vector3f(-3,0,-1);
     //goal = Vector3f(0, 0, 7);
     mainArm.solve(goal, 100);
+
     Point3f secGoal = Point3f(goal[0], goal[1], -goal[2]);
     secArm.solve(secGoal, 100);
 

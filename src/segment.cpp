@@ -14,7 +14,8 @@ Segment::Segment(float magnitude, JointType jt) : Segment() {
 }
 
 Segment::Segment(const Vector3f &v, JointType jt) {
-    T = AngleAxisf( acos(v.dot(Vector3f::UnitZ())), v.cross(Vector3f::UnitZ()) );
+    Vector3f vn = v.normalized();
+    T = AngleAxisf( acos(vn.dot(Vector3f::UnitZ())), vn.cross(Vector3f::UnitZ()) );
     mag = sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
     joint = jt;
 }
