@@ -3,17 +3,17 @@
 #include <cmath>
 #include <GL/gl.h>
 
-Segment::Segment() {
+Segment::Segment(int id) : segment_id(id) {
     start_point = Point3f(0, 0, 0);
     T = T.Identity();
 }
 
-Segment::Segment(float magnitude, JointType jt) : Segment() {
+Segment::Segment(int id, float magnitude, JointType jt) : Segment(id) {
     mag = magnitude;
     joint = jt;
 }
 
-Segment::Segment(const Vector3f &v, JointType jt) {
+Segment::Segment(int id, const Vector3f &v, JointType jt) : segment_id(id) {
     start_point = Point3f(0, 0, 0);
     Vector3f vn = v.normalized();
     T = AngleAxisf( -acos(vn.dot(Vector3f::UnitZ())), vn.cross(Vector3f::UnitZ()) );
@@ -34,6 +34,7 @@ Point3f Segment::get_end_point() {
 
     // start with vector going into the Z direction
     a = Point3f(0, 0, mag);
+
     // transform into the rotation of the segment
     a = T * a;
 

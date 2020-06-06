@@ -103,6 +103,7 @@ std::map<std::string, vector<Segment*> > readSkeletonFile(const std::string &fil
     std::map<std::string, Point3f > positions;
 
     int row_number = 0;
+    int next_segment_id = 1;
     std::vector<std::string> csv_header;
     for (auto const & row_data: csv_data) {
         if (!row_number) {
@@ -151,7 +152,7 @@ std::map<std::string, vector<Segment*> > readSkeletonFile(const std::string &fil
             if (parent_bone.length()) {
                 for (unsigned int i = 0; i < segments[parent_bone].size(); i++) 
                     segments[bone_name].push_back(segments[parent_bone][i]); 
-                Segment *segment = new Segment((positions[bone_name] - positions[parent_bone]));
+                Segment *segment = new Segment(next_segment_id++, (positions[bone_name] - positions[parent_bone]));
                 segments[bone_name].push_back(segment);
             }
 

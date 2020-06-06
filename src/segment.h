@@ -9,6 +9,8 @@ typedef enum {
 
 class Segment {
     private:
+        int segment_id;
+
         // magnitude of the segment
         float mag;
 
@@ -26,9 +28,13 @@ class Segment {
 
     public:
         // constructors
-        Segment();
-        Segment(float magnitude, JointType jt = BALLJOINT);
-        Segment(const Vector3f &v, JointType jt = BALLJOINT);
+        Segment(int id);
+        Segment(int id, float magnitude, JointType jt = BALLJOINT);
+        Segment(int id, const Vector3f &v, JointType jt = BALLJOINT);
+
+        inline int get_segment_id() const {
+            return segment_id;
+        }
 
         // set the position of the starting point
         void set_start_point(Point3f pos);

@@ -23,6 +23,7 @@ static int leftMouse, middleMouse, rightMouse;
 static int mousePosX, mousePosY;
 static bool changing = false;
 static int selElement;
+static std::string selElementName;
 
 static GLint viewport[4];
 
@@ -35,14 +36,11 @@ float obj_pos[] = { 0.0, 0.0, 5.0 };
 std::map<std::string, vector<Segment*> > readSkeletonFile(const std::string &filename);
 
 static std::map<std::string, Arm> arms;
-
 std::map<std::string, Segment*> bones;
+std::map<int, std::string> SegmentNames;
 
-std::map<std::string, int> segmentName2glId;
-std::map<int, std::string> glId2segmentName;
-
-Arm mainArm;
-Arm secArm;
+//~ Arm mainArm;
+//~ Arm secArm;
 
 Point3f goal;
 
@@ -128,64 +126,90 @@ static void drawCube() {
 }
 
 void drawSkeleton(bool pick=false) {
-	if (!pick) {
-		for (auto it = arms.begin(); it != arms.end(); it++) {
-			std::string key = it->first;
-			Arm & arm = it->second;
-			arm.update();
-			//~ arm.draw();
-		}
+	static const int sphere_segs = 4;
 
-		Point3f start_point = Point3f(0, 0, 0);
+	for (auto it = arms.begin(); it != arms.end(); it++) {
+		std::string key = it->first;
+		Arm & arm = it->second;
+		arm.update();
+		//~ if (!pick) arm.draw();
+	}
+
+	if (!pick) {
 		for (auto it = bones.begin(); it != bones.end(); it++) {
 			std::string key = it->first;
 			Segment* & seg = it->second;
-			if (seg) start_point = seg->draw();
+			if (seg) {
+				Point3f end_point = seg->draw();
+
+				glPushMatrix();
+					glTranslatef(end_point[0], end_point[1], end_point[2]);
+					glutSolidSphere(.05, sphere_segs, sphere_segs);
+				glPopMatrix();
+			}
+		}
+
+	} else {
+		for (auto it = bones.begin(); it != bones.end(); it++) {
+			std::string key = it->first;
+			Segment* & seg = it->second;
+			if (seg) {
+				Point3f end_point = seg->get_start_point() + seg->get_end_point();
+
+				glLoadName(seg->get_segment_id());
+				glPushMatrix();
+					glTranslatef(end_point[0], end_point[1], end_point[2]);
+					glutSolidSphere(.05, sphere_segs, sphere_segs);
+				glPopMatrix();
+			}
 		}
 	}
 
-	int sphere_segs = 4;
+	glLoadName(0);
 
-	glLoadName(1);
-	glPushMatrix();
-		glTranslatef(goal[0], goal[1], goal[2]);
-		glutSolidSphere(.05, sphere_segs, sphere_segs);
-	glPopMatrix();
+	//~ if (!pick) {
+		//~ glPushMatrix();
+			//~ glTranslatef(goal[0], goal[1], goal[2]);
+			//~ glutSolidSphere(.05, sphere_segs, sphere_segs);
+		//~ glPopMatrix();
 
-	if (!pick) {
-		Point3f secGoal = Point3f(goal[0], goal[1], -goal[2]);
-		glPushMatrix();
-			glTranslatef(secGoal[0], secGoal[1], secGoal[2]);
-			glutSolidSphere(.05, sphere_segs, sphere_segs);
-		glPopMatrix();
-	}
+		//~ Point3f secGoal = Point3f(goal[0], goal[1], -goal[2]);
+		//~ glPushMatrix();
+			//~ glTranslatef(secGoal[0], secGoal[1], secGoal[2]);
+			//~ glutSolidSphere(.05, sphere_segs, sphere_segs);
+		//~ glPopMatrix();
+	//~ }
 }
 
 void updateSkeleton() {
-    mainArm.solve(goal, 100);
+    if (selElement && selElementName.size()) {
+        arms[selElementName].solve(goal, 100);
+        glutPostRedisplay();
+    }
 
-    Point3f secGoal = Point3f(goal[0], goal[1], -goal[2]);
-    secArm.solve(secGoal, 100);
+    //~ mainArm.solve(goal, 100);
+
+    //~ Point3f secGoal = Point3f(goal[0], goal[1], -goal[2]);
+    //~ secArm.solve(secGoal, 100);
 }
 
 void setUpSkeleton() {
-    auto segments = readSkeletonFile("skeletons/human.csv");
+    auto segvectors = readSkeletonFile("skeletons/human.csv");
 
-    int n = 1;
-    for (auto it = segments.begin(); it != segments.end(); it++, n++) {
+    for (auto it = segvectors.begin(); it != segvectors.end(); it++) {
         std::string key = it->first;
         std::vector<Segment*> & segs = it->second;
         arms[key].set_segments(segs);
 
         if (it->second.size()) {
-            bones[key] = it->second.back();
-            segmentName2glId[key] = n;
-            glId2segmentName[n] = key;
+            Segment * seg = it->second.back();
+            bones[key] = seg;
+            SegmentNames[seg->get_segment_id()] = key;
         }
     }
 
-    mainArm.set_segments(segments["lfoot"]);
-    secArm.set_segments(segments["rfoot"]);
+    //~ mainArm.set_segments(segvectors["lfoot"]);
+    //~ secArm.set_segments(segvectors["rfoot"]);
 }
 
 
@@ -534,7 +558,12 @@ void mouseHandler(int button, int state, int x, int y) {
 					leftMouse = GL_TRUE;
 
 					selElement = selectElement(mousePosX, mousePosY);
-					printf("Selected: %d\n", selElement);
+					if (selElement) {
+						selElementName = SegmentNames[selElement];
+						printf("Selected: %d (%s)\n", selElement, selElementName.c_str());
+					} else {
+						selElementName = "";
+					}
 
 					//~ float selx, sely;
 					//~ if (computeCoords(selElement, mousex, mousey, &selx, &sely)) {
@@ -628,6 +657,9 @@ void init() {
   glLightfv(GL_LIGHT1, GL_POSITION, light1_position);
 
   //~ trackball(trackball_quat, 0.0, 0.0, 0.0, 0.0);
+
+	selElement = 0;
+	selElementName = "";
 }
 
 static void Usage() {
@@ -702,8 +734,7 @@ int main(int argc, char* argv[]) {
   gluiSidePanel = GLUI_Master.create_glui_subwindow( mainWindow, GLUI_SUBWINDOW_RIGHT );
 
   // Quit button
-
-	gluiSidePanel->add_button ("Quit", QUIT_BUTTON, gluiControlCallback);
+  gluiSidePanel->add_button ("Quit", QUIT_BUTTON, gluiControlCallback);
 
   // Link window to GLUI
   gluiSidePanel->set_main_gfx_window( mainWindow );
