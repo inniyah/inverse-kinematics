@@ -23,6 +23,7 @@ class Arm {
 
         // set the position of base
         void set_base(Point3f pos);
+
         // get the position of the base
         Point3f get_base();
 
@@ -31,6 +32,9 @@ class Arm {
 
         // solve the arm for some point
         void solve(Point3f goal_point, int life_count);
+
+        // update the segments
+        void update();
 
         // draw the arm
         void draw();

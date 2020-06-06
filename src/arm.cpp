@@ -3,17 +3,21 @@
 #include <GL/gl.h>
 
 Arm::Arm() {
-    base = Point3f(0,0,0);
+    base = Point3f(0, 0, 0);
 }
 
 Arm::Arm(vector<Segment*>segs, Point3f pos) {
-    base = Point3f(0,0,0);
+    base = Point3f(0, 0, 0);
     set_segments(segs);
     set_base(pos);
 }
 
 void Arm::set_base(Point3f pos) {
     base = pos;
+}
+
+Point3f Arm::get_base() {
+    return base;
 }
 
 // returns the total magnitude of all the segments
@@ -23,10 +27,6 @@ float Arm::get_max_length() {
         ret += segments[i]->get_mag();
     }
     return ret;
-}
-
-Point3f Arm::get_base() {
-    return base;
 }
 
 void Arm::set_segments(vector<Segment*> segs) {
@@ -274,6 +274,15 @@ Point3f Arm::calculate_end_effector(int segment_num /* = -1 */) {
     return ret;
 }
 
+void Arm::update() {
+    Point3f start_point = base;
+    int seg_size = segments.size();
+    for(int i=0; i<seg_size; i++) {
+        segments[i]->set_start_point(start_point);
+        start_point = start_point + segments[i]->get_end_point();
+    }
+}
+
 void Arm::draw() {
     // wireframe mode
     //~ glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
@@ -287,6 +296,7 @@ void Arm::draw() {
     Point3f start_point = base;
 
     for(int i=0; i<seg_size; i++) {
-        start_point = segments[i]->draw(start_point);
+        segments[i]->set_start_point(start_point);
+        start_point = segments[i]->draw();
     }
 }

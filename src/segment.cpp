@@ -4,6 +4,7 @@
 #include <GL/gl.h>
 
 Segment::Segment() {
+    start_point = Point3f(0, 0, 0);
     T = T.Identity();
 }
 
@@ -13,10 +14,19 @@ Segment::Segment(float magnitude, JointType jt) : Segment() {
 }
 
 Segment::Segment(const Vector3f &v, JointType jt) {
+    start_point = Point3f(0, 0, 0);
     Vector3f vn = v.normalized();
     T = AngleAxisf( -acos(vn.dot(Vector3f::UnitZ())), vn.cross(Vector3f::UnitZ()) );
     mag = sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
     joint = jt;
+}
+
+void Segment::set_start_point(Point3f pos) {
+    start_point = pos;
+}
+
+Point3f Segment::get_start_point() {
+    return start_point;
 }
 
 Point3f Segment::get_end_point() {
@@ -30,7 +40,7 @@ Point3f Segment::get_end_point() {
     return a;
 }
 
-Point3f Segment::draw(Point3f start_point, int seg_count) {
+Point3f Segment::draw(int seg_count) {
     Point3f a0, a1, a2;
     Vector3f n0, n1, n2;
 

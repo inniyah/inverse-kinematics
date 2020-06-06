@@ -22,17 +22,25 @@ class Segment {
         // connected to
         JointType joint;
 
+        Point3f start_point;
+
     public:
         // constructors
         Segment();
         Segment(float magnitude, JointType jt = BALLJOINT);
         Segment(const Vector3f &v, JointType jt = BALLJOINT);
 
+        // set the position of the starting point
+        void set_start_point(Point3f pos);
+
+        // get the position of the starting point
+        Point3f get_start_point();
+
         // returns end point in object space
         Point3f get_end_point();
 
         // draw takes in the startpoint and returns the endpoint
-        Point3f draw(Point3f start_point, int seg_count = 5);
+        Point3f draw(int seg_count = 5);
 
         Vector3f get_right();
         Vector3f get_up();
