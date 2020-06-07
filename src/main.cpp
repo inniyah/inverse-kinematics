@@ -132,6 +132,8 @@ static void drawCube() {
 void drawSkeleton(bool pick=false) {
 	static const int sphere_segs = 4;
 
+	if (!pick) glLoadName(0);
+
 	for (auto it = arms.begin(); it != arms.end(); it++) {
 		std::string key = it->first;
 		Arm & arm = it->second;
@@ -166,6 +168,15 @@ void drawSkeleton(bool pick=false) {
 					glutSolidSphere(.05, sphere_segs, sphere_segs);
 				glPopMatrix();
 			}
+		}
+	}
+
+	if (!pick) {
+		if (selElement && selElementName.size()) {
+			glPushMatrix();
+				glTranslatef(goal[0], goal[1], goal[2]);
+				glutSolidSphere(.02, sphere_segs, sphere_segs);
+			glPopMatrix();
 		}
 	}
 }
