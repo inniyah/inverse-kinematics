@@ -42,9 +42,6 @@ static std::map<std::string, Arm> arms;
 std::map<std::string, Segment*> bones;
 std::map<int, std::string> SegmentNames;
 
-//~ Arm mainArm;
-//~ Arm secArm;
-
 Point3f goal;
 
 static void drawAxes(float scale = .5f) {
@@ -167,21 +164,6 @@ void drawSkeleton(bool pick=false) {
 			}
 		}
 	}
-
-	glLoadName(0);
-
-	//~ if (!pick) {
-		//~ glPushMatrix();
-			//~ glTranslatef(goal[0], goal[1], goal[2]);
-			//~ glutSolidSphere(.05, sphere_segs, sphere_segs);
-		//~ glPopMatrix();
-
-		//~ Point3f secGoal = Point3f(goal[0], goal[1], -goal[2]);
-		//~ glPushMatrix();
-			//~ glTranslatef(secGoal[0], secGoal[1], secGoal[2]);
-			//~ glutSolidSphere(.05, sphere_segs, sphere_segs);
-		//~ glPopMatrix();
-	//~ }
 }
 
 void updateSkeleton() {
@@ -189,11 +171,6 @@ void updateSkeleton() {
         arms[selElementName].solve(goal, 100);
         glutPostRedisplay();
     }
-
-    //~ mainArm.solve(goal, 100);
-
-    //~ Point3f secGoal = Point3f(goal[0], goal[1], -goal[2]);
-    //~ secArm.solve(secGoal, 100);
 }
 
 void setUpSkeleton() {
@@ -210,9 +187,6 @@ void setUpSkeleton() {
             SegmentNames[seg->get_segment_id()] = key;
         }
     }
-
-    //~ mainArm.set_segments(segvectors["lfoot"]);
-    //~ secArm.set_segments(segvectors["rfoot"]);
 }
 
 
@@ -604,11 +578,6 @@ void mouseHandler(int button, int state, int x, int y) {
 						selElementName = "";
 					}
 
-					//~ float selx, sely;
-					//~ if (computeCoords(selElement, mousex, mousey, &selx, &sely)) {
-					//~ 	grabPiece(selElement, selx, sely);
-					//~ }
-
 					break;
 				case GLUT_UP:
 					printf ("Mouse Left Button Released (Up)...\n");
@@ -696,8 +665,6 @@ void init() {
   glLightfv(GL_LIGHT1, GL_AMBIENT, light1_ambient);
   glLightfv(GL_LIGHT1, GL_DIFFUSE, light1_diffuse);
   glLightfv(GL_LIGHT1, GL_POSITION, light1_position);
-
-  //~ trackball(trackball_quat, 0.0, 0.0, 0.0, 0.0);
 
 	selElement = 0;
 	selElementName = "";
@@ -805,5 +772,5 @@ int main(int argc, char* argv[]) {
   GLUI_Master.set_glutIdleFunc(idleHandler);
 
   glutMainLoop();
-  return 0;             /* ANSI C requires main to return int. */
+  return EXIT_SUCCESS;
 }
