@@ -30,6 +30,10 @@ static const int VIEWPORT_ROWS = 2;
 static GLint viewports[4][VIEWPORT_COLS * VIEWPORT_ROWS];
 static int selViewport;
 
+static const int ITERATIONS_TO_SOLVE = 50;
+
+static const float IDENTITY_MATRIX[16] = { 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f };
+
 GLUI *gluiSidePanel, *gluiBottomPanel;
 
 float view_rotate[16] = { 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 };
@@ -168,7 +172,7 @@ void drawSkeleton(bool pick=false) {
 
 void updateSkeleton() {
     if (selElement && selElementName.size()) {
-        arms[selElementName].solve(goal, 100);
+        arms[selElementName].solve(goal, ITERATIONS_TO_SOLVE);
         glutPostRedisplay();
     }
 }
@@ -210,22 +214,42 @@ static void adjustViewMatrices(int vp_num) {
 	glMatrixMode(GL_PROJECTION);
 	// Don't call glLoadIdentity!!
 	switch (vp_num) {
-		case 0:
-			glOrtho(-2.0, 2.0, -2.0, 2.0, 0.1, 100.0);
+		case 0: // Viewport 0 (Down-Left)
+			glOrtho(-2.0 * screenAspect, 2.0 * screenAspect, -2.0, 2.0, 0.1, 100.0);
+			break;
+		case 1: // Viewport 1 (Down-Right)
+			gluPerspective(45, screenAspect, 0.1, 100.0);
+			break;
+		case 2: // Viewport 2 (Up-Left)
+			glOrtho(-2.0 * screenAspect, 2.0 * screenAspect, -2.0, 2.0, 0.1, 100.0);
+			break;
+		case 3: // Viewport 3 (Up-Right)
+			glOrtho(-2.0 * screenAspect, 2.0 * screenAspect, -2.0, 2.0, 0.1, 100.0);
 			break;
 		default:
-			gluPerspective(45, screenAspect, 0.1, 100.0);
+			break;
 	}
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	switch (vp_num) {
-		case 0:
-			glTranslatef(0., 0., -5.);
+		case 0: // Viewport 0 (Down-Left)
+			glTranslatef(0.f, 0.f, -5.f);
+			glRotatef(90, 1.f, 0.f, 0.f);
 			break;
-		default:
+		case 1: // Viewport 1 (Down-Right)
 			glTranslatef(obj_pos[0], obj_pos[1], -obj_pos[2]);
 			glMultMatrixf(view_rotate);
+			break;
+		case 2: // Viewport 2 (Up-Left)
+			glTranslatef(0.f, 0.f, -5.f);
+			break;
+		case 3: // Viewport 3 (Up-Right)
+			glTranslatef(0.f, 0.f, -5.f);
+			glRotatef(90, 0.f, 1.f, 0.f);
+			break;
+		default:
+			break;
 	}
 }
 
@@ -234,8 +258,9 @@ void displayHandler() {
 	glClearColor( .9f, .9f, .9f, 1.0f );
 	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
-	// Perspective view
 	glEnable(GL_SCISSOR_TEST);
+
+	// Perspective view: Viewport 1 (Down-Right)
 	GLint (&vp)[4] = viewports[1];
 	ViewportScissor(vp[0], vp[1], vp[2], vp[3]);
 	glMatrixMode(GL_PROJECTION);
@@ -243,13 +268,28 @@ void displayHandler() {
 	adjustViewMatrices(1);
 	drawScene();
 
-	// View from above (Y)
-	glEnable(GL_SCISSOR_TEST);
+	// View from above (Y): Viewport 0 (Down-Left)
 	GLint (&vp_y)[4] = viewports[0];
 	ViewportScissor(vp_y[0], vp_y[1], vp_y[2], vp_y[3]);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	adjustViewMatrices(0);
+	drawScene();
+
+	// View from front (Z): Viewport 2 (Up-Left)
+	GLint (&vp_z)[4] = viewports[2];
+	ViewportScissor(vp_z[0], vp_z[1], vp_z[2], vp_z[3]);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	adjustViewMatrices(2);
+	drawScene();
+
+	// View from side (X): Viewport 3 (Up-Right)
+	GLint (&vp_x)[4] = viewports[3];
+	ViewportScissor(vp_x[0], vp_x[1], vp_x[2], vp_x[3]);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	adjustViewMatrices(3);
 	drawScene();
 
 	glutSwapBuffers();
@@ -308,8 +348,6 @@ static float dot(const float a[3], const float b[3]) {
     return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
 }
 
-static const float identity[16] = { 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f };
-
 static void mult(const GLfloat a[16], const GLfloat b[16], GLfloat r[16]) {
 	for (int i = 0; i < 4; i++) {
 		for (int j = 0; j < 4; j++) {
@@ -331,7 +369,7 @@ static bool invert(const GLfloat src[16], GLfloat inverse[16]) {
     }
   }
 
-  memcpy(inverse, identity, sizeof(identity));
+  memcpy(inverse, IDENTITY_MATRIX, sizeof(IDENTITY_MATRIX));
 
   for (int i = 0; i < 4; i++) { // Look for largest element in column
     int swap = i;
@@ -381,15 +419,18 @@ static bool invert(const GLfloat src[16], GLfloat inverse[16]) {
 // x and y coordinates given that the object space z is 0.9 + OFFSETZ.
 // Since the tops of (most) pieces are at z = 0.9 + OFFSETZ, we use that number.
 
-static bool computeXYCoords(GLint viewport[4], int mousex, int mousey, GLfloat * selx, GLfloat * sely, GLfloat h = 0.0f) {
+static bool computeXYCoords(GLint viewport[4], int mousex, int mousey, GLfloat * selx, GLfloat * sely, GLfloat h = 0.0f, const float adjMatrix[16] = IDENTITY_MATRIX) {
   GLfloat projMatrix[16];
   glGetFloatv(GL_PROJECTION_MATRIX, projMatrix);
 
   GLfloat modelMatrix[16];
   glGetFloatv(GL_MODELVIEW_MATRIX, modelMatrix);
 
+  GLfloat finalMatrix[16];
+  mult(modelMatrix, projMatrix, finalMatrix);
+
   GLfloat m[16];
-  mult(modelMatrix, projMatrix, m);
+  mult(finalMatrix, adjMatrix, m);
   if (!invert(m, m)) return false;
 
   GLfloat in_x = (2.0 * (mousex - viewport[0]) / viewport[2]) - 1.0;
@@ -542,7 +583,7 @@ void motionHandler(int x, int y) {
 	adjustViewMatrices(selViewport);
 
     float selx, sely;
-    computeXYCoords(viewports[selViewport], x, y, &selx, &sely, goal[2]);
+    computeXYCoords(viewports[selViewport], x, y, &selx, &sely, goal[2], IDENTITY_MATRIX);
     goal[0] = selx;
     goal[1] = sely;
     //~ printf("Coords: %f, %f\n", selx, sely);
@@ -574,6 +615,8 @@ void mouseHandler(int button, int state, int x, int y) {
 					if (selElement) {
 						selElementName = SegmentNames[selElement];
 						printf("Selected: %d (%s)\n", selElement, selElementName.c_str());
+						goal = bones[selElementName]->get_start_point() + bones[selElementName]->get_end_point();
+
 					} else {
 						selElementName = "";
 					}
