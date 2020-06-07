@@ -25,7 +25,10 @@ static bool changing = false;
 static int selElement;
 static std::string selElementName;
 
-static GLint viewport[4];
+static const int VIEWPORT_COLS = 2;
+static const int VIEWPORT_ROWS = 2;
+static GLint viewports[4][VIEWPORT_COLS * VIEWPORT_ROWS];
+static int selViewport;
 
 GLUI *gluiSidePanel, *gluiBottomPanel;
 
@@ -234,9 +237,6 @@ void drawScene(bool pick=false) {
 
 	glMultMatrixf(view_rotate);
 
-	glClearColor( .9f, .9f, .9f, 1.0f );
-	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
   glLoadName(0);
   drawAxes();
 
@@ -245,17 +245,45 @@ void drawScene(bool pick=false) {
   drawSkeleton(pick);
 }
 
-void displayHandler() {
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
-  gluPerspective(45, screenAspect, 0.1, 100.0);
-
-  drawScene();
-
-  glutSwapBuffers();
+void ViewportScissor(int x, int y, int width, int height) {
+    glViewport(x, y, width, height);
+    glScissor(x, y, width, height);
 }
 
-int selectElement(int mousex, int mousey) {
+static void adjustProjMatrix(int vp_num) {
+	switch (vp_num) {
+		default:
+			gluPerspective(45, screenAspect, 0.1, 100.0);
+	}
+}
+
+void displayHandler() {
+	glDisable(GL_SCISSOR_TEST);
+	glClearColor( .9f, .9f, .9f, 1.0f );
+	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
+	// Perspective view
+	glEnable(GL_SCISSOR_TEST);
+	GLint (&vp)[4] = viewports[1];
+	ViewportScissor(vp[0], vp[1], vp[2], vp[3]);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	adjustProjMatrix(1);
+	drawScene();
+
+	// View from above (Y)
+	glEnable(GL_SCISSOR_TEST);
+	GLint (&vp_y)[4] = viewports[0];
+	ViewportScissor(vp_y[0], vp_y[1], vp_y[2], vp_y[3]);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	adjustProjMatrix(0);
+	drawScene();
+
+	glutSwapBuffers();
+}
+
+int selectElement(GLint viewport[4], int mousex, int mousey) {
   long hits;
   GLuint selectBuf[1024];
   GLuint closest;
@@ -267,11 +295,12 @@ int selectElement(int mousex, int mousey) {
 
   glPushName(~0U);
 
+  glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
   gluPickMatrix(mousex, screenHeight - mousey, 4, 4, viewport);
-  gluPerspective(45, screenAspect, 0.1, 100.0);
-
+  adjustProjMatrix(selViewport);
   drawScene(true);
 
   hits = glRenderMode(GL_RENDER);
@@ -380,7 +409,7 @@ static bool invert(const GLfloat src[16], GLfloat inverse[16]) {
 // x and y coordinates given that the object space z is 0.9 + OFFSETZ.
 // Since the tops of (most) pieces are at z = 0.9 + OFFSETZ, we use that number.
 
-static bool computeXYCoords(int mousex, int mousey, GLfloat * selx, GLfloat * sely, GLfloat h = 0.0f) {
+static bool computeXYCoords(GLint viewport[4], int mousex, int mousey, GLfloat * selx, GLfloat * sely, GLfloat h = 0.0f) {
   GLfloat projMatrix[16];
   glGetFloatv(GL_PROJECTION_MATRIX, projMatrix);
 
@@ -439,8 +468,18 @@ static void reshapeHandler(int width, int height) {
   screenWidth = width;
   screenHeight = height;
   screenAspect = (float)width / (float)height;
-  glViewport(0, 0, screenWidth, screenHeight);
-  glGetIntegerv(GL_VIEWPORT, viewport);
+
+  for (int y = 0; y < VIEWPORT_ROWS; y++)
+    for (int x = 0; x < VIEWPORT_COLS; x++) {
+      GLint (&viewport)[4] = viewports[x + VIEWPORT_COLS*y];
+      viewport[0] = x * width / VIEWPORT_COLS;
+      viewport[1] = y * height / VIEWPORT_ROWS;
+      viewport[2] = width / VIEWPORT_COLS;
+      viewport[3] = height / VIEWPORT_ROWS;
+  }
+
+  //~ glViewport(0, 0, screenWidth, screenHeight);
+  //~ glGetIntegerv(GL_VIEWPORT, viewports[0]);
 }
 
 void keyboardHandler(unsigned char c, int x, int y) {
@@ -528,10 +567,9 @@ void specialHandler(int key, int x, int y) {
 
 
 void motionHandler(int x, int y) {
-
   if (leftMouse && selElement) {
     float selx, sely;
-    computeXYCoords(x, y, &selx, &sely, goal[2]);
+    computeXYCoords(viewports[selViewport], x, y, &selx, &sely, goal[2]);
     goal[0] = selx;
     goal[1] = sely;
     printf("Coords: %f, %f\n", selx, sely);
@@ -557,7 +595,9 @@ void mouseHandler(int button, int state, int x, int y) {
 					printf ("Mouse Left Button Pressed (Down)...\n");
 					leftMouse = GL_TRUE;
 
-					selElement = selectElement(mousePosX, mousePosY);
+					selViewport = (x * VIEWPORT_COLS / screenWidth) + VIEWPORT_COLS * (VIEWPORT_ROWS - 1 - (y * VIEWPORT_ROWS / screenHeight));
+					printf("Viewport: %d\n", selViewport);
+					selElement = selectElement(viewports[selViewport], mousePosX, mousePosY);
 					if (selElement) {
 						selElementName = SegmentNames[selElement];
 						printf("Selected: %d (%s)\n", selElement, selElementName.c_str());
@@ -660,6 +700,8 @@ void init() {
 
 	selElement = 0;
 	selElementName = "";
+	selViewport = 0;
+	memset(viewports, 0, sizeof(viewports));
 }
 
 static void Usage() {
@@ -706,8 +748,6 @@ int main(int argc, char* argv[]) {
   mainWindow = glutCreateWindow("Skeleton");
 
   init();
-
-  glGetIntegerv(GL_VIEWPORT, viewport);
 
   glutDisplayFunc(displayHandler);
   GLUI_Master.set_glutReshapeFunc(reshapeHandler);
