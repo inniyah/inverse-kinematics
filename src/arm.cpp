@@ -97,7 +97,7 @@ void Arm::solve(Point3f goal_point, int life_count) {
             jac_t(i+2, 1) = row_z(0, 1);
             jac_t(i+2, 2) = row_z(0, 2);
         }
-        // compute the final jacovian
+        // compute the final jacobian
         MatrixXf jac(3, 3*segment_size);
         jac = jac_t.transpose();
 

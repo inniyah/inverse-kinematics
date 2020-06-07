@@ -54,18 +54,21 @@ static const float XYZ_TO_ZYX_MATRIX[16] = {
 	1.f, 0.f, 0.f, 0.f,
 	0.f, 0.f, 0.f, 1.f };
 
-GLUI *gluiSidePanel, *gluiBottomPanel;
+static GLUI *gluiSidePanel, *gluiBottomPanel;
 
 std::map<std::string, vector<Segment*> > readSkeletonFile(const std::string &filename);
 
+std::string skeletonFilename;
+
+static std::map<std::string, vector<Segment*> > armsSegments;
 static std::map<std::string, Arm> arms;
-std::map<std::string, Segment*> bones;
-std::map<int, std::string> SegmentNames;
+static std::map<std::string, Segment*> bones;
+static std::map<int, std::string> SegmentNames;
 
 float skelMinY = INFINITY;
 float skelMaxY = -INFINITY;
 
-Point3f goal;
+static Point3f goal;
 
 static void drawAxes(float scale = .5f) {
   glDisable(GL_LIGHTING);
@@ -161,7 +164,7 @@ static void drawGrid(int x0, int z0, int x1, int z1, float y) {
 	glEnd();
 }
 
-void drawSkeleton(bool pick=false) {
+static void drawSkeleton(bool pick=false) {
 	static const int sphere_segs = 4;
 
 	if (!pick) glLoadName(0);
@@ -213,17 +216,18 @@ void drawSkeleton(bool pick=false) {
 	}
 }
 
-void updateSkeleton() {
+static void updateSkeleton() {
     if (selElement && selElementName.size()) {
         arms[selElementName].solve(goal, ITERATIONS_TO_SOLVE);
         glutPostRedisplay();
     }
 }
 
-void setUpSkeleton() {
-    auto segvectors = readSkeletonFile("skeletons/human.csv");
+static void setUpSkeleton() {
+    skeletonFilename = "skeletons/human.csv";
+    std::map<std::string, vector<Segment*> > armsSegments = readSkeletonFile(skeletonFilename);
 
-    for (auto it = segvectors.begin(); it != segvectors.end(); it++) {
+    for (auto it = armsSegments.begin(); it != armsSegments.end(); it++) {
         std::string key = it->first;
         std::vector<Segment*> & segs = it->second;
         arms[key].set_segments(segs);
@@ -561,7 +565,7 @@ static void reshapeHandler(int width, int height) {
   //~ glGetIntegerv(GL_VIEWPORT, viewports[0]);
 }
 
-void keyboardHandler(unsigned char c, int x, int y) {
+static void keyboardHandler(unsigned char c, int x, int y) {
   switch(c) {
     case 27:
     case 'q':
@@ -572,7 +576,7 @@ void keyboardHandler(unsigned char c, int x, int y) {
   glutPostRedisplay();
 }
 
-void specialHandler(int key, int x, int y) {
+static void specialHandler(int key, int x, int y) {
 	printf ("GLUT: ");
 
 	switch (key) {
@@ -644,7 +648,7 @@ void specialHandler(int key, int x, int y) {
 	glutPostRedisplay ();
 }
 
-void motionHandler(int x, int y) {
+static void motionHandler(int x, int y) {
   if (leftMouse && selElement) {
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
@@ -683,7 +687,7 @@ void motionHandler(int x, int y) {
   glutPostRedisplay();
 }
 
-void mouseHandler(int button, int state, int x, int y) {
+static void mouseHandler(int button, int state, int x, int y) {
 	printf ("GLUT: ");
 
 	mousePosX = x;
@@ -749,7 +753,7 @@ void mouseHandler(int button, int state, int x, int y) {
 	motionHandler(x, y);
 }
 
-void idleHandler() {
+static void idleHandler() {
   if (glutGetWindow() != mainWindow) glutSetWindow(mainWindow);
 
   glutPostRedisplay();
@@ -782,7 +786,7 @@ static const GLfloat light1_ambient[] =  {0.1f, 0.1f, 0.3f, 1.0f};
 static const GLfloat light1_diffuse[] =  {.9f, .6f, 0.0f, 1.0f};
 static const GLfloat light1_position[] = {-1.0f, -1.0f, 1.0f, 0.0f};
 
-void init() {
+static void init() {
   glEnable(GL_LIGHTING);
   glEnable(GL_NORMALIZE);
 
@@ -809,7 +813,7 @@ static void Usage() {
   exit(-1);
 }
 
-void visibilityHandler(int v) {
+static void visibilityHandler(int v) {
   if (v == GLUT_VISIBLE) {
     windowVisible = true;
   } else {
@@ -818,7 +822,7 @@ void visibilityHandler(int v) {
   changeState();
 }
 
-void menuHandler(int choice) {
+static void menuHandler(int choice) {
 	switch(choice) {
 		case 1:
 			exit(0);
@@ -826,7 +830,7 @@ void menuHandler(int choice) {
 	}
 }
 
-bool save() {
+static bool save() {
 	char const * lTheSaveFileName;
 	char const * lFilterPatterns[2] = { "*.txt", "*.text" };
 
@@ -850,7 +854,8 @@ bool save() {
 		return false;
 	}
 
-	fputs("test", lIn);
+	fputs("Data: pose\n", lIn);
+	fprintf(lIn, "Skeleton: %s\n", skeletonFilename.c_str());
 	fclose(lIn);
 
 	return true;
@@ -862,7 +867,7 @@ enum {
 	QUIT_BUTTON,
 };
 
-void gluiControlCallback(int control_id) {
+static void gluiControlCallback(int control_id) {
 	switch (control_id) {
 		case SAVE_BUTTON:
 			save();
