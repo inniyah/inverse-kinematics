@@ -219,24 +219,6 @@ void setUpSkeleton() {
 void changeState();
 
 void drawScene(bool pick=false) {
-  //int i, j;
-  //int piece;
-  //char done[PIECES + 1];
-
-  //~ float m[4][4];
-
-  //~ build_rotmatrix(m, trackball_quat);
-
-  //~ memcpy(view_rotate, m, sizeof(view_rotate));
-
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
-  glTranslatef(obj_pos[0], obj_pos[1], -obj_pos[2]);
-  //~ glMultMatrixf(&(m[0][0]));
-  //~ glRotatef(180, 0, 0, 1);
-
-	glMultMatrixf(view_rotate);
-
   glLoadName(0);
   drawAxes();
 
@@ -250,10 +232,26 @@ void ViewportScissor(int x, int y, int width, int height) {
     glScissor(x, y, width, height);
 }
 
-static void adjustProjMatrix(int vp_num) {
+static void adjustViewMatrices(int vp_num) {
+	glMatrixMode(GL_PROJECTION);
+	// Don't call glLoadIdentity!!
 	switch (vp_num) {
+		case 0:
+			glOrtho(-2.0, 2.0, -2.0, 2.0, 0.1, 100.0);
+			break;
 		default:
 			gluPerspective(45, screenAspect, 0.1, 100.0);
+	}
+
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+	switch (vp_num) {
+		case 0:
+			glTranslatef(0., 0., -5.);
+			break;
+		default:
+			glTranslatef(obj_pos[0], obj_pos[1], -obj_pos[2]);
+			glMultMatrixf(view_rotate);
 	}
 }
 
@@ -268,7 +266,7 @@ void displayHandler() {
 	ViewportScissor(vp[0], vp[1], vp[2], vp[3]);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	adjustProjMatrix(1);
+	adjustViewMatrices(1);
 	drawScene();
 
 	// View from above (Y)
@@ -277,7 +275,7 @@ void displayHandler() {
 	ViewportScissor(vp_y[0], vp_y[1], vp_y[2], vp_y[3]);
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	adjustProjMatrix(0);
+	adjustViewMatrices(0);
 	drawScene();
 
 	glutSwapBuffers();
@@ -300,7 +298,7 @@ int selectElement(GLint viewport[4], int mousex, int mousey) {
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
   gluPickMatrix(mousex, screenHeight - mousey, 4, 4, viewport);
-  adjustProjMatrix(selViewport);
+  adjustViewMatrices(selViewport);
   drawScene(true);
 
   hits = glRenderMode(GL_RENDER);
@@ -359,7 +357,7 @@ static bool invert(const GLfloat src[16], GLfloat inverse[16]) {
     }
   }
 
-	memcpy(inverse, identity, sizeof(identity));
+  memcpy(inverse, identity, sizeof(identity));
 
   for (int i = 0; i < 4; i++) { // Look for largest element in column
     int swap = i;
@@ -459,9 +457,6 @@ static bool computeXYCoords(GLint viewport[4], int mousex, int mousey, GLfloat *
   *sely = (in_x * m[0 * 4 + 1] + in_y * m[1 * 4 + 1] + z * m[2 * 4 + 1] + m[3 * 4 + 1]) / w;
 
   return true;
-}
-
-void moveSelection(float selx, float sely) {
 }
 
 static void reshapeHandler(int width, int height) {
@@ -568,11 +563,15 @@ void specialHandler(int key, int x, int y) {
 
 void motionHandler(int x, int y) {
   if (leftMouse && selElement) {
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	adjustViewMatrices(selViewport);
+
     float selx, sely;
     computeXYCoords(viewports[selViewport], x, y, &selx, &sely, goal[2]);
     goal[0] = selx;
     goal[1] = sely;
-    printf("Coords: %f, %f\n", selx, sely);
+    //~ printf("Coords: %f, %f\n", selx, sely);
     updateSkeleton();
   }
 
@@ -614,6 +613,8 @@ void mouseHandler(int button, int state, int x, int y) {
 				case GLUT_UP:
 					printf ("Mouse Left Button Released (Up)...\n");
 					leftMouse = GL_FALSE;
+					selViewport = 0;
+					selElement = 0;
 					break;
 			}
 			glutPostRedisplay();
