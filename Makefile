@@ -35,7 +35,7 @@ LDFLAGS= \
 CSTD=-std=c11
 CPPSTD=-std=c++11
 
-OPTS= -O2 -g
+OPTS= -O0 -ggdb
 
 DEFS=
 
@@ -47,7 +47,7 @@ LIBS= \
 
 BINARY= Demo
 BINARY_SRCS= \
-	src/arm.cpp  src/main.cpp  src/point.cpp  src/segment.cpp src/csv.cpp
+	src/arm.cpp  src/main.cpp  src/point.cpp  src/segment.cpp src/csv.cpp src/tinyfiledialogs.cpp
 BINARY_OBJS= $(subst .cpp,.o,$(BINARY_SRCS))
 
 all: $(BINARY)

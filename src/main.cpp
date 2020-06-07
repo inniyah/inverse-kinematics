@@ -2,6 +2,7 @@
 #include "arm.h"
 #include "point.h"
 #include "segment.h"
+#include "tinyfiledialogs.h"
 
 #include <string>
 #include <map>
@@ -825,12 +826,47 @@ void menuHandler(int choice) {
 	}
 }
 
+bool save() {
+	char const * lTheSaveFileName;
+	char const * lFilterPatterns[2] = { "*.txt", "*.text" };
+
+	lTheSaveFileName = tinyfd_saveFileDialog("select filename to save", "bones.txt", 2, lFilterPatterns, NULL);
+
+	if (!lTheSaveFileName) {
+		tinyfd_messageBox("Error", "Save file name is NULL", "ok", "error", 1);
+		return false;
+	}
+
+	FILE * lIn;
+#ifdef _WIN32
+	if (tinyfd_winUtf8)
+		lIn = _wfopen(tinyfd_utf8to16(lTheSaveFileName), L"w"); /* the UTF-8 filename is converted to UTF-16 to open the file*/
+	else
+#endif
+	lIn = fopen(lTheSaveFileName, "w");
+
+	if (!lIn) {
+		tinyfd_messageBox("Error", "Can not open this file in write mode", "ok", "error", 1);
+		return false;
+	}
+
+	fputs("test", lIn);
+	fclose(lIn);
+
+	return true;
+}
+
+
 enum {
+	SAVE_BUTTON,
 	QUIT_BUTTON,
 };
 
 void gluiControlCallback(int control_id) {
 	switch (control_id) {
+		case SAVE_BUTTON:
+			save();
+			break;
 		case QUIT_BUTTON:
 			exit(EXIT_SUCCESS);
 			break;
@@ -874,6 +910,7 @@ int main(int argc, char* argv[]) {
   gluiSidePanel = GLUI_Master.create_glui_subwindow(mainWindow, GLUI_SUBWINDOW_RIGHT);
 
   // Quit button
+  gluiSidePanel->add_button ("Save", SAVE_BUTTON, gluiControlCallback);
   gluiSidePanel->add_button ("Quit", QUIT_BUTTON, gluiControlCallback);
 
   // Link window to GLUI
