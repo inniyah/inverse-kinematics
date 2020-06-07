@@ -2,6 +2,8 @@
 
 #include <GL/gl.h>
 
+static const bool VERBOSE = false;
+
 Arm::Arm() {
     base = Point3f(0, 0, 0);
 }
@@ -105,7 +107,7 @@ void Arm::solve(Point3f goal_point, int life_count) {
 
         Matrix<float, Dynamic, 1> changes = pinv_jac * dP;
 
-        cout << "changes: " << changes << endl;
+        if (VERBOSE) cout << "changes: " << changes << endl;
 
         for(int i=0; i<3*segment_size; i+=3) {
             // save the current transformation on the segments
@@ -122,15 +124,15 @@ void Arm::solve(Point3f goal_point, int life_count) {
         // compute current_point after making changes
         current_point = calculate_end_effector();
 
-        //cout << "current_point: " << vectorString(current_point) << endl;
-        //cout << "goal_point: " << vectorString(goal_point) << endl;
+        //if (VERBOSE) cout << "current_point: " << vectorString(current_point) << endl;
+        //if (VERBOSE) cout << "goal_point: " << vectorString(goal_point) << endl;
 
         prev_err = curr_err;
         curr_err = (goal_point - current_point).norm();
 
         int halving_count = 0;
 
-        cout << "curr err: " << curr_err << " || prev err: " << prev_err << " || last err: " << last_err << endl;
+        if (VERBOSE) cout << "curr err: " << curr_err << " || prev err: " << prev_err << " || last err: " << last_err << endl;
         // make sure we aren't iterating past the solution
         while (curr_err > last_err) {
             // undo changes
@@ -158,7 +160,7 @@ void Arm::solve(Point3f goal_point, int life_count) {
             prev_err = curr_err;
             curr_err = (goal_point - current_point).norm();
 
-            cout << "|half| curr err: " << curr_err << " || prev err: " << prev_err << endl;
+            if (VERBOSE) cout << "|half| curr err: " << curr_err << " || prev err: " << prev_err << endl;
             halving_count++;
             if (halving_count > 100)
                 break;
@@ -172,17 +174,17 @@ void Arm::solve(Point3f goal_point, int life_count) {
             }
             current_point = calculate_end_effector();
             curr_err = (goal_point - current_point).norm();
-            cout << "curr iteration not better than last, reverting" << endl;
-            cout << "curr err: " << curr_err << " || last err: " << last_err << endl;
+            if (VERBOSE) cout << "curr iteration not better than last, reverting" << endl;
+            if (VERBOSE) cout << "curr err: " << curr_err << " || last err: " << last_err << endl;
             break;
         }
         for(int i=0; i<segment_size; i++) {
             // unapply the change to the saved angle
             segments[i]->save_last_transformation();
         }
-        cout << "curr err: " << curr_err << " || last err: " << last_err << endl;
+        if (VERBOSE) cout << "curr err: " << curr_err << " || last err: " << last_err << endl;
         last_err = curr_err;
-        cout << "last_err is now : " << last_err << endl;
+        if (VERBOSE) cout << "last_err is now : " << last_err << endl;
 
 
         // make sure we don't infinite loop
@@ -204,7 +206,7 @@ void Arm::solve(Point3f goal_point, int life_count) {
         solve(goal_point, life_count-1);
     } else {
     */
-    cout << "final error: " << curr_err << endl;
+    if (VERBOSE) cout << "final error: " << curr_err << endl;
 }
 
 Matrix<float, 1, 3> Arm::compute_jacobian_segment(int seg_num, Point3f goal_point, Vector3f angle) {
