@@ -27,8 +27,11 @@ static std::string selElementName;
 
 static const int VIEWPORT_COLS = 2;
 static const int VIEWPORT_ROWS = 2;
-static GLint viewports[4][VIEWPORT_COLS * VIEWPORT_ROWS];
+static GLint viewports[VIEWPORT_COLS * VIEWPORT_ROWS][4];
 static int selViewport;
+
+float objPos[VIEWPORT_COLS * VIEWPORT_ROWS][3];
+float objRot[VIEWPORT_COLS * VIEWPORT_ROWS][16];
 
 static const int ITERATIONS_TO_SOLVE = 50;
 
@@ -52,15 +55,14 @@ static const float XYZ_TO_ZYX_MATRIX[16] = {
 
 GLUI *gluiSidePanel, *gluiBottomPanel;
 
-float view_rotate[16] = { 1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1 };
-float obj_pos[] = { 0.0, 0.0, 5.0 };
-
-
 std::map<std::string, vector<Segment*> > readSkeletonFile(const std::string &filename);
 
 static std::map<std::string, Arm> arms;
 std::map<std::string, Segment*> bones;
 std::map<int, std::string> SegmentNames;
+
+float skelMinY = INFINITY;
+float skelMaxY = -INFINITY;
 
 Point3f goal;
 
@@ -145,6 +147,19 @@ static void drawCube() {
 	glEnd();
 }
 
+static void drawGrid(int x0, int z0, int x1, int z1, float y) {
+	glBegin(GL_LINES);
+		for (int i=z0; i<=z1; i++) { // Horizontal lines
+			glVertex3f(x0, y, i);
+			glVertex3f(x1, y, i);
+		}
+		for (int i=x0; i<=x1; i++) { // Vertical lines
+			glVertex3f(i, y, z0);
+			glVertex3f(i, y, z1);
+		}
+	glEnd();
+}
+
 void drawSkeleton(bool pick=false) {
 	static const int sphere_segs = 4;
 
@@ -218,6 +233,28 @@ void setUpSkeleton() {
             SegmentNames[seg->get_segment_id()] = key;
         }
     }
+
+    for (auto it = arms.begin(); it != arms.end(); it++) {
+        std::string key = it->first;
+        Arm & arm = it->second;
+        arm.update();
+    }
+
+    skelMinY = INFINITY;
+    skelMaxY = -INFINITY;
+
+    for (auto it = bones.begin(); it != bones.end(); it++) {
+        std::string key = it->first;
+        Segment* & seg = it->second;
+        if (seg) {
+            Point3f start_point = seg->get_start_point();
+            skelMinY = fmin(skelMinY, start_point[1]);
+            skelMaxY = fmax(skelMaxY, start_point[1]);
+            Point3f end_point = start_point + seg->get_end_point();
+            skelMinY = fmin(skelMinY, end_point[1]);
+            skelMaxY = fmax(skelMaxY, end_point[1]);
+        }
+    }
 }
 
 
@@ -229,6 +266,7 @@ void drawScene(bool pick=false) {
 
   //~ drawCube();
 
+  if (!pick) drawGrid(-10, -10, 10, 10, skelMinY);
   drawSkeleton(pick);
 }
 
@@ -242,16 +280,16 @@ static void adjustViewMatrices(int vp_num) {
 	// Don't call glLoadIdentity!!
 	switch (vp_num) {
 		case 0: // Viewport 0 (Down-Left)
-			glOrtho(-2.0 * screenAspect, 2.0 * screenAspect, -2.0, 2.0, 0.1, 100.0);
+			gluPerspective(45, screenAspect, 0.1, 100.0);
 			break;
 		case 1: // Viewport 1 (Down-Right)
 			gluPerspective(45, screenAspect, 0.1, 100.0);
 			break;
 		case 2: // Viewport 2 (Up-Left)
-			glOrtho(-2.0 * screenAspect, 2.0 * screenAspect, -2.0, 2.0, 0.1, 100.0);
+			gluPerspective(45, screenAspect, 0.1, 100.0);
 			break;
 		case 3: // Viewport 3 (Up-Right)
-			glOrtho(-2.0 * screenAspect, 2.0 * screenAspect, -2.0, 2.0, 0.1, 100.0);
+			gluPerspective(45, screenAspect, 0.1, 100.0);
 			break;
 		default:
 			break;
@@ -261,19 +299,22 @@ static void adjustViewMatrices(int vp_num) {
 	glLoadIdentity();
 	switch (vp_num) {
 		case 0: // Viewport 0 (Down-Left)
-			glTranslatef(0.f, 0.f, -5.f);
+			glTranslatef(objPos[0][0], objPos[0][1], -objPos[0][2]);
 			glRotatef(90, 1.f, 0.f, 0.f);
+			glMultMatrixf(objRot[0]);
 			break;
 		case 1: // Viewport 1 (Down-Right)
-			glTranslatef(obj_pos[0], obj_pos[1], -obj_pos[2]);
-			glMultMatrixf(view_rotate);
+			glTranslatef(objPos[1][0], objPos[1][1], -objPos[1][2]);
+			glMultMatrixf(objRot[1]);
 			break;
 		case 2: // Viewport 2 (Up-Left)
-			glTranslatef(0.f, 0.f, -5.f);
+			glTranslatef(objPos[2][0], objPos[2][1], -objPos[2][2]);
+			glMultMatrixf(objRot[2]);
 			break;
 		case 3: // Viewport 3 (Up-Right)
-			glTranslatef(0.f, 0.f, -5.f);
+			glTranslatef(objPos[3][0], objPos[3][1], -objPos[3][2]);
 			glRotatef(90, 0.f, 1.f, 0.f);
+			glMultMatrixf(objRot[3]);
 			break;
 		default:
 			break;
@@ -758,6 +799,9 @@ void init() {
 	selElementName = "";
 	selViewport = 0;
 	memset(viewports, 0, sizeof(viewports));
+
+	memset(objPos, 0, sizeof(objPos));
+	memset(objRot, 0, sizeof(objRot));
 }
 
 static void Usage() {
@@ -827,34 +871,101 @@ int main(int argc, char* argv[]) {
 
   // Side subwindow
 
-  gluiSidePanel = GLUI_Master.create_glui_subwindow( mainWindow, GLUI_SUBWINDOW_RIGHT );
+  gluiSidePanel = GLUI_Master.create_glui_subwindow(mainWindow, GLUI_SUBWINDOW_RIGHT);
 
   // Quit button
   gluiSidePanel->add_button ("Quit", QUIT_BUTTON, gluiControlCallback);
 
   // Link window to GLUI
-  gluiSidePanel->set_main_gfx_window( mainWindow );
+  gluiSidePanel->set_main_gfx_window(mainWindow);
 
   // Bottom subwindow
 
-  gluiBottomPanel = GLUI_Master.create_glui_subwindow( mainWindow, GLUI_SUBWINDOW_BOTTOM );
-  gluiBottomPanel->set_main_gfx_window( mainWindow );
+  gluiBottomPanel = GLUI_Master.create_glui_subwindow(mainWindow, GLUI_SUBWINDOW_BOTTOM);
+  gluiBottomPanel->set_main_gfx_window(mainWindow);
 
-  GLUI_Rotation *view_rot = new GLUI_Rotation(gluiBottomPanel, "Objects", view_rotate );
-  view_rot->set_spin( 1.0 );
+  GLUI_Translation *t = nullptr;
+  GLUI_Rotation *r = nullptr;
+
+  // Viewport 0: Up
+
+  objPos[0][0] = objPos[0][1] = 0.0f;
+  t = new GLUI_Translation(gluiBottomPanel, "Up XY", GLUI_TRANSLATION_XY, objPos[0]);
+  t->set_speed( .005 );
+
   new GLUI_Column( gluiBottomPanel, false );
 
-  GLUI_Translation *trans_xy = new GLUI_Translation(gluiBottomPanel, "Objects XY", GLUI_TRANSLATION_XY, obj_pos );
-  trans_xy->set_speed( .005 );
+  objPos[0][2] = 3.0f;
+  t = new GLUI_Translation(gluiBottomPanel, "Up Z", GLUI_TRANSLATION_Z, &objPos[0][2]);
+  t->set_speed( .005 );
+
   new GLUI_Column( gluiBottomPanel, false );
-  GLUI_Translation *trans_x = new GLUI_Translation(gluiBottomPanel, "Objects X", GLUI_TRANSLATION_X, obj_pos );
-  trans_x->set_speed( .005 );
+
+  memcpy(objRot[0], IDENTITY_MATRIX, sizeof(IDENTITY_MATRIX));
+  r = new GLUI_Rotation(gluiBottomPanel, "Up Rot", objRot[0] );
+  r->set_spin( 1.0 );
+
   new GLUI_Column( gluiBottomPanel, false );
-  GLUI_Translation *trans_y = new GLUI_Translation( gluiBottomPanel, "Objects Y", GLUI_TRANSLATION_Y, &obj_pos[1] );
-  trans_y->set_speed( .005 );
+
+  // Viewport 2: Front
+
+  objPos[2][0] = objPos[2][1] = 0.0f;
+  t = new GLUI_Translation(gluiBottomPanel, "Front XY", GLUI_TRANSLATION_XY, objPos[2]);
+  t->set_speed( .005 );
+
   new GLUI_Column( gluiBottomPanel, false );
-  GLUI_Translation *trans_z = new GLUI_Translation( gluiBottomPanel, "Objects Z", GLUI_TRANSLATION_Z, &obj_pos[2] );
-  trans_z->set_speed( .005 );
+
+  objPos[2][2] = 3.0f;
+  t = new GLUI_Translation(gluiBottomPanel, "Front Z", GLUI_TRANSLATION_Z, &objPos[2][2]);
+  t->set_speed( .005 );
+
+  new GLUI_Column( gluiBottomPanel, false );
+
+  memcpy(objRot[2], IDENTITY_MATRIX, sizeof(IDENTITY_MATRIX));
+  r = new GLUI_Rotation(gluiBottomPanel, "Front Rot", objRot[2] );
+  r->set_spin( 1.0 );
+
+  new GLUI_Column( gluiBottomPanel, false );
+
+  // Viewport 3: Side
+
+  objPos[3][0] = objPos[3][1] = 0.0f;
+  t = new GLUI_Translation(gluiBottomPanel, "Side XY", GLUI_TRANSLATION_XY, objPos[3]);
+  t->set_speed( .005 );
+
+  new GLUI_Column( gluiBottomPanel, false );
+
+  objPos[3][2] = 3.0f;
+  t = new GLUI_Translation(gluiBottomPanel, "Side Z", GLUI_TRANSLATION_Z, &objPos[3][2]);
+  t->set_speed( .005 );
+
+  new GLUI_Column( gluiBottomPanel, false );
+
+  memcpy(objRot[3], IDENTITY_MATRIX, sizeof(IDENTITY_MATRIX));
+  r = new GLUI_Rotation(gluiBottomPanel, "Side Rot", objRot[3] );
+  r->set_spin( 1.0 );
+
+  new GLUI_Column( gluiBottomPanel, false );
+
+  // Viewport 1: Perspective
+
+  objPos[1][0] = objPos[1][1] = 0.0f;
+  t = new GLUI_Translation(gluiBottomPanel, "Persp XY", GLUI_TRANSLATION_XY, objPos[1]);
+  t->set_speed( .005 );
+
+  new GLUI_Column( gluiBottomPanel, false );
+
+  objPos[1][2] = 3.0f;
+  t = new GLUI_Translation(gluiBottomPanel, "Persp Z", GLUI_TRANSLATION_Z, &objPos[1][2]);
+  t->set_speed( .005 );
+
+  new GLUI_Column( gluiBottomPanel, false );
+
+  memcpy(objRot[1], IDENTITY_MATRIX, sizeof(IDENTITY_MATRIX));
+  r = new GLUI_Rotation(gluiBottomPanel, "Persp Rot", objRot[1] );
+  r->set_spin( 1.0 );
+
+  new GLUI_Column( gluiBottomPanel, false );
 
   // We register the idle callback with GLUI, *not* with GLUT
   GLUI_Master.set_glutIdleFunc(idleHandler);
