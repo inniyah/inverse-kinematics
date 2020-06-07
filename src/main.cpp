@@ -32,7 +32,23 @@ static int selViewport;
 
 static const int ITERATIONS_TO_SOLVE = 50;
 
-static const float IDENTITY_MATRIX[16] = { 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, 0.f, 0.f, 1.f };
+static const float IDENTITY_MATRIX[16] = {
+	1.f, 0.f, 0.f, 0.f,
+	0.f, 1.f, 0.f, 0.f,
+	0.f, 0.f, 1.f, 0.f,
+	0.f, 0.f, 0.f, 1.f };
+
+static const float XYZ_TO_XZY_MATRIX[16] = {
+	1.f, 0.f, 0.f, 0.f,
+	0.f, 0.f, 1.f, 0.f,
+	0.f, 1.f, 0.f, 0.f,
+	0.f, 0.f, 0.f, 1.f };
+
+static const float XYZ_TO_ZYX_MATRIX[16] = {
+	0.f, 0.f, 1.f, 0.f,
+	0.f, 1.f, 0.f, 0.f,
+	1.f, 0.f, 0.f, 0.f,
+	0.f, 0.f, 0.f, 1.f };
 
 GLUI *gluiSidePanel, *gluiBottomPanel;
 
@@ -441,7 +457,7 @@ static bool computeXYCoords(GLint viewport[4], int mousex, int mousey, GLfloat *
   mult(modelMatrix, projMatrix, finalMatrix);
 
   GLfloat m[16];
-  mult(finalMatrix, adjMatrix, m);
+  mult(adjMatrix, finalMatrix, m);
   if (!invert(m, m)) return false;
 
   GLfloat in_x = (2.0 * (mousex - viewport[0]) / viewport[2]) - 1.0;
@@ -586,17 +602,36 @@ void specialHandler(int key, int x, int y) {
 	glutPostRedisplay ();
 }
 
-
 void motionHandler(int x, int y) {
   if (leftMouse && selElement) {
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	adjustViewMatrices(selViewport);
 
-    float selx, sely;
-    computeXYCoords(viewports[selViewport], x, y, &selx, &sely, goal[2], IDENTITY_MATRIX);
-    goal[0] = selx;
-    goal[1] = sely;
+	float selx, sely;
+
+	switch (selViewport) {
+		case 0: // Viewport 0 (Down-Left): View from above (Y)
+			computeXYCoords(viewports[selViewport], x, y, &selx, &sely, goal[1], XYZ_TO_XZY_MATRIX);
+			goal[0] = selx;
+			goal[2] = sely;
+			break;
+		case 1: // Viewport 1 (Down-Right): Perspective view
+			break;
+		case 2: // Viewport 2 (Up-Left): View from front (Z)
+			computeXYCoords(viewports[selViewport], x, y, &selx, &sely, goal[2], IDENTITY_MATRIX);
+			goal[0] = selx;
+			goal[1] = sely;
+			break;
+		case 3: // Viewport 3 (Up-Right): View from side (X)
+			computeXYCoords(viewports[selViewport], x, y, &selx, &sely, goal[0], XYZ_TO_ZYX_MATRIX);
+			goal[2] = selx;
+			goal[1] = sely;
+			break;
+		default:
+			break;
+	}
+
     //~ printf("Coords: %f, %f\n", selx, sely);
     updateSkeleton();
   }
@@ -605,7 +640,6 @@ void motionHandler(int x, int y) {
   mousePosY = y;
   glutPostRedisplay();
 }
-
 
 void mouseHandler(int button, int state, int x, int y) {
 	printf ("GLUT: ");
