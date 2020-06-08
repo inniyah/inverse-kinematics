@@ -60,10 +60,12 @@ std::map<std::string, vector<Segment*> > readSkeletonFile(const std::string &fil
 
 std::string skeletonFilename;
 
-static std::map<std::string, vector<Segment*> > armsSegments;
+static std::map<std::string, std::vector<Segment*> > armsSegments;
 static std::map<std::string, Arm> arms;
 static std::map<std::string, Segment*> bones;
 static std::map<int, std::string> SegmentNames;
+
+static std::vector<std::array<Point3f, 2> > refSegmentLines;
 
 float skelMinY = INFINITY;
 float skelMaxY = -INFINITY;
@@ -164,6 +166,15 @@ static void drawGrid(int x0, int z0, int x1, int z1, float y) {
 	glEnd();
 }
 
+static void drawRefLines() {
+	glBegin(GL_LINES);
+	for (auto const & line: refSegmentLines) {
+		glVertex3f(line[0][0], line[0][1], line[0][2]);
+		glVertex3f(line[1][0], line[1][1], line[1][2]);
+	}
+	glEnd();
+}
+
 static void drawSkeleton(bool pick=false) {
 	static const int sphere_segs = 4;
 
@@ -258,6 +269,10 @@ static void setUpSkeleton() {
             Point3f end_point = start_point + seg->get_end_point();
             skelMinY = fmin(skelMinY, end_point[1]);
             skelMaxY = fmax(skelMaxY, end_point[1]);
+
+            std::array<Point3f, 2> line = {start_point, end_point};
+
+            refSegmentLines.push_back(line);
         }
     }
 }
@@ -272,6 +287,8 @@ void drawScene(bool pick=false) {
   //~ drawCube();
 
   if (!pick) drawGrid(-10, -10, 10, 10, skelMinY);
+  if (!pick) drawRefLines();
+
   drawSkeleton(pick);
 }
 
@@ -831,32 +848,32 @@ static void menuHandler(int choice) {
 }
 
 static bool save() {
-	char const * lTheSaveFileName;
-	char const * lFilterPatterns[2] = { "*.txt", "*.text" };
+	char const * filename;
+	char const * filter_patterns[2] = { "*.txt", "*.text" };
 
-	lTheSaveFileName = tinyfd_saveFileDialog("select filename to save", "bones.txt", 2, lFilterPatterns, NULL);
+	filename = tinyfd_saveFileDialog("select filename to save", "bones.txt", 2, filter_patterns, NULL);
 
-	if (!lTheSaveFileName) {
+	if (!filename) {
 		tinyfd_messageBox("Error", "Save file name is NULL", "ok", "error", 1);
 		return false;
 	}
 
-	FILE * lIn;
+	FILE * file_handler;
 #ifdef _WIN32
 	if (tinyfd_winUtf8)
-		lIn = _wfopen(tinyfd_utf8to16(lTheSaveFileName), L"w"); /* the UTF-8 filename is converted to UTF-16 to open the file*/
+		file_handler = _wfopen(tinyfd_utf8to16(filename), L"w"); /* the UTF-8 filename is converted to UTF-16 to open the file*/
 	else
 #endif
-	lIn = fopen(lTheSaveFileName, "w");
+	file_handler = fopen(filename, "w");
 
-	if (!lIn) {
+	if (!file_handler) {
 		tinyfd_messageBox("Error", "Can not open this file in write mode", "ok", "error", 1);
 		return false;
 	}
 
-	fputs("Data: pose\n", lIn);
-	fprintf(lIn, "Skeleton: %s\n", skeletonFilename.c_str());
-	fclose(lIn);
+	fputs("Data: pose\n", file_handler);
+	fprintf(file_handler, "Skeleton: %s\n", skeletonFilename.c_str());
+	fclose(file_handler);
 
 	return true;
 }
