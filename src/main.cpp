@@ -13,15 +13,29 @@
 #include <GL/glui.h>
 
 #include <cmath>
+#include <ctime>
 #include <unistd.h>
+#include <sys/timeb.h>
+
+unsigned long int getMilliCount() {
+	timeb tb;
+	ftime(&tb);
+	unsigned long int nCount = tb.millitm + (tb.time & 0xfffff) * 1000;
+	return nCount;
+}
 
 static int mainWindow;
 static bool windowVisible;
 static int screenWidth = 800, screenHeight = 600;
 static float screenAspect;
 
-static int leftMouse, middleMouse, rightMouse;
+static bool leftMouseClick, leftMouseDoubleClick, middleMouseClick, rightMouseClick;
 static int mousePosX, mousePosY;
+static bool leftMouseMaybeDoubleClick;
+static unsigned long int leftMouseClickTimeMs;
+
+static const int DoubleClickClockMaxTime = 400;
+
 static bool changing = false;
 static int selElement;
 static std::string selElementName;
@@ -666,12 +680,14 @@ static void specialHandler(int key, int x, int y) {
 }
 
 static void motionHandler(int x, int y) {
-  if (leftMouse && selElement) {
+  if (leftMouseClick && selElement) {
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	adjustViewMatrices(selViewport);
 
 	float selx, sely;
+
+	unsigned long int timeMs = getMilliCount(); // To get the number of seconds used, divide by CLOCKS_PER_SEC.
 
 	switch (selViewport) {
 		case 0: // Viewport 0 (Down-Left): View from above (Y)
@@ -695,8 +711,8 @@ static void motionHandler(int x, int y) {
 			break;
 	}
 
-    //~ printf("Coords: %f, %f\n", selx, sely);
-    updateSkeleton();
+	if (timeMs - leftMouseClickTimeMs > DoubleClickClockMaxTime)
+		updateSkeleton();
   }
 
   mousePosX = x;
@@ -710,12 +726,16 @@ static void mouseHandler(int button, int state, int x, int y) {
 	mousePosX = x;
 	mousePosY = y;
 
+	// This function will return the same value approximately every 72 minutes.
+	// POSIX requires that CLOCKS_PER_SEC equals 1000000 independent of the actual resolution.
+	unsigned long int timeMs = getMilliCount(); // To get the number of seconds used, divide by CLOCKS_PER_SEC.
+
 	switch (button) {
 		case GLUT_LEFT_BUTTON:
 			switch (state) {
 				case GLUT_DOWN:
 					printf ("Mouse Left Button Pressed (Down)...\n");
-					leftMouse = GL_TRUE;
+					leftMouseClick = true;
 
 					selViewport = (x * VIEWPORT_COLS / screenWidth) + VIEWPORT_COLS * (VIEWPORT_ROWS - 1 - (y * VIEWPORT_ROWS / screenHeight));
 					printf("Viewport: %d\n", selViewport);
@@ -729,10 +749,26 @@ static void mouseHandler(int button, int state, int x, int y) {
 						selElementName = "";
 					}
 
+					if (!leftMouseMaybeDoubleClick || timeMs - leftMouseClickTimeMs > DoubleClickClockMaxTime) {
+						leftMouseMaybeDoubleClick = true;
+						leftMouseClickTimeMs = timeMs;
+					} else {
+						//~ printf ("[[ Mouse Left Button Double Click: %ld ]]\n", timeMs - leftMouseClickTimeMs);
+
+						if (selElement && selElementName.size()) {
+							bones[selElementName]->set_blocked(!bones[selElementName]->get_blocked());
+							printf ("[[ Bone %d (%s) set to %s ]]\n", selElement, selElementName.c_str(), bones[selElementName]->get_blocked() ? "blocked" : "not blocked");
+						}
+
+						leftMouseClick = false;
+						leftMouseDoubleClick = true;
+						leftMouseMaybeDoubleClick = false;
+					}
+
 					break;
 				case GLUT_UP:
 					printf ("Mouse Left Button Released (Up)...\n");
-					leftMouse = GL_FALSE;
+					leftMouseClick = leftMouseDoubleClick = false;
 					selViewport = 0;
 					selElement = 0;
 					break;
@@ -743,11 +779,11 @@ static void mouseHandler(int button, int state, int x, int y) {
 			switch (state) {
 				case GLUT_DOWN:
 					printf ("Mouse Middle Button Pressed (Down)...\n");
-					middleMouse = GL_TRUE;
+					middleMouseClick = true;
 					break;
 				case GLUT_UP:
 					printf ("Mouse Middle Button Released (Up)...\n");
-					middleMouse = GL_FALSE;
+					middleMouseClick = false;
 					break;
 			}
 			glutPostRedisplay();
@@ -756,11 +792,11 @@ static void mouseHandler(int button, int state, int x, int y) {
 			switch (state) {
 				case GLUT_DOWN:
 					printf ("Mouse Right Button Pressed (Down)...\n");
-					rightMouse = GL_TRUE;
+					rightMouseClick = true;
 					break;
 				case GLUT_UP:
 					printf ("Mouse Right Button Released (Up)...\n");
-					rightMouse = GL_FALSE;
+					rightMouseClick = false;
 					break;
 			}
 			glutPostRedisplay();
@@ -816,6 +852,9 @@ static void init() {
   glLightfv(GL_LIGHT1, GL_AMBIENT, light1_ambient);
   glLightfv(GL_LIGHT1, GL_DIFFUSE, light1_diffuse);
   glLightfv(GL_LIGHT1, GL_POSITION, light1_position);
+
+  leftMouseClick = leftMouseDoubleClick = middleMouseClick = rightMouseClick = leftMouseMaybeDoubleClick = false;
+  leftMouseClickTimeMs = 0;
 
 	selElement = 0;
 	selElementName = "";

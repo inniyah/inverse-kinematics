@@ -10,6 +10,7 @@ typedef enum {
 class Segment {
     private:
         int segment_id;
+        bool blocked;
 
         // magnitude of the segment
         float mag;
@@ -34,6 +35,14 @@ class Segment {
 
         inline int get_segment_id() const {
             return segment_id;
+        }
+
+        inline bool get_blocked() const {
+            return blocked;
+        }
+
+        inline void set_blocked(bool b) {
+            blocked = b;
         }
 
         // set the position of the starting point
