@@ -132,6 +132,7 @@ static void drawCube() {
 	glEnd();
 
 	// Right: purple);
+	glBegin(GL_POLYGON);
 	glColor3f(  1.0,  0.0,  1.0 );
 	glVertex3f( 0.5, -0.5, -0.5 );
 	glVertex3f( 0.5,  0.5, -0.5 );
@@ -168,6 +169,8 @@ static void drawCube() {
 }
 
 static void drawGrid(int x0, int z0, int x1, int z1, float y) {
+	glColor3f ( 0.0f, 0.0f, 0.0f );
+
 	glBegin(GL_LINES);
 		for (int i=z0; i<=z1; i++) { // Horizontal lines
 			glVertex3f(x0, y, i);
@@ -181,6 +184,8 @@ static void drawGrid(int x0, int z0, int x1, int z1, float y) {
 }
 
 static void drawRefLines() {
+	glColor3f ( 0.0f, 0.0f, 0.0f );
+
 	glBegin(GL_LINES);
 	for (auto const & line: refSegmentLines) {
 		glVertex3f(line[0][0], line[0][1], line[0][2]);
@@ -190,7 +195,8 @@ static void drawRefLines() {
 }
 
 static void drawSkeleton(bool pick=false) {
-	static const int sphere_segs = 4;
+	static const int sphere_segs = 6;
+	glColor3f ( 1.0f, 1.0f, 1.0f );
 
 	if (!pick) glLoadName(0);
 
@@ -207,6 +213,11 @@ static void drawSkeleton(bool pick=false) {
 			Segment* & seg = it->second;
 			if (seg) {
 				Point3f end_point = seg->draw();
+
+				if (seg->get_blocked())
+					glColor3f ( 1.0f, 0.0f, 0.0f );
+				else
+					glColor3f ( 0.0f, 1.0f, 0.0f );
 
 				glPushMatrix();
 					glTranslatef(end_point[0], end_point[1], end_point[2]);
@@ -233,6 +244,8 @@ static void drawSkeleton(bool pick=false) {
 
 	if (!pick) {
 		if (selElement && selElementName.size()) {
+			glColor3f ( 1.0f, 1.0f, 1.0f );
+
 			glPushMatrix();
 				glTranslatef(goal[0], goal[1], goal[2]);
 				glutSolidSphere(.02, sphere_segs, sphere_segs);
