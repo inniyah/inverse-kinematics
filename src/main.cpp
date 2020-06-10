@@ -110,7 +110,7 @@ static void drawAxes(float scale = .5f) {
 
   glPopMatrix();
 
-  glEnable( GL_LIGHTING );
+  glEnable(GL_LIGHTING);
 }
 
 static void drawCube() {
@@ -212,6 +212,11 @@ static void drawSkeleton(bool pick=false) {
 			std::string key = it->first;
 			Segment* & seg = it->second;
 			if (seg) {
+				if (seg->get_blocked())
+					glColor3f ( 1.0f, 0.0f, 0.0f );
+				else
+					glColor3f ( 0.0f, 1.0f, 0.0f );
+
 				Point3f end_point = seg->draw();
 
 				if (seg->get_blocked())
@@ -223,6 +228,8 @@ static void drawSkeleton(bool pick=false) {
 					glTranslatef(end_point[0], end_point[1], end_point[2]);
 					glutSolidSphere(.05, sphere_segs, sphere_segs);
 				glPopMatrix();
+
+				//~ glEnable(GL_LIGHTING);
 			}
 		}
 
@@ -844,27 +851,52 @@ void changeState() {
   }
 }
 
-static const GLfloat light0_ambient[] =  {0.1f, 0.1f, 0.3f, 1.0f};
-static const GLfloat light0_diffuse[] =  {.6f, .6f, 1.0f, 1.0f};
-static const GLfloat light0_position[] = {.5f, .5f, 1.0f, 0.0f};
-
-static const GLfloat light1_ambient[] =  {0.1f, 0.1f, 0.3f, 1.0f};
-static const GLfloat light1_diffuse[] =  {.9f, .6f, 0.0f, 1.0f};
-static const GLfloat light1_position[] = {-1.0f, -1.0f, 1.0f, 0.0f};
-
 static void init() {
-  glEnable(GL_LIGHTING);
-  glEnable(GL_NORMALIZE);
+  static const GLfloat lmodel_ambient[]      = { 0.0, 0.0, 0.0, 0.0 };
+  static const GLfloat lmodel_twoside[]      = { GL_FALSE };
+  static const GLfloat lmodel_local[]        = { GL_FALSE };
 
-  glEnable(GL_LIGHT0);
+  //~ static const GLfloat light0_ambient[]      = { 0.2, 0.2, 0.2, 1.0 };
+  //~ static const GLfloat light0_diffuse[]      = { 1.0, 1.0, 1.0, 0.0 };
+  //~ static const GLfloat light0_position[]     = {.5f, .5f, 1.0f, 0.0f};
+
+  static const GLfloat light0_ambient[]      = { 0.1f, 0.1f, 0.1f, 1.0f };
+  static const GLfloat light0_diffuse[]      = { 1.0f, 1.0f, 1.0f, 0.0f };
+  static const GLfloat light0_position[]     = { .5f, .5f, 1.0f, 0.0f };
+
+  static const GLfloat light1_ambient[]      = { 0.1f, 0.1f, 0.1f, 1.0f };
+  static const GLfloat light1_diffuse[]      = { 1.0f, 1.0f, 1.0f, 0.0f };
+  static const GLfloat light1_position[]     = { -1.0f, -1.0f, 1.0f, 0.0f };
+
+  static const GLfloat bevel_mat_ambient[]   = { 0.0, 0.0, 0.0, 1.0 };
+  static const GLfloat bevel_mat_shininess[] = { 40.0 };
+  static const GLfloat bevel_mat_specular[]  = { 0.0, 0.0, 0.0, 0.0 };
+  static const GLfloat bevel_mat_diffuse[]   = { 1.0, 0.0, 0.0, 0.0 };
+
+  glEnable(GL_CULL_FACE);
+  glCullFace(GL_BACK);
+  glEnable(GL_DEPTH_TEST);
+  glClearDepth(1.0);
+
+  glClearColor(0.5, 0.5, 0.5, 0.0);
   glLightfv(GL_LIGHT0, GL_AMBIENT, light0_ambient);
   glLightfv(GL_LIGHT0, GL_DIFFUSE, light0_diffuse);
   glLightfv(GL_LIGHT0, GL_POSITION, light0_position);
+  glEnable(GL_LIGHT0);
 
-  glEnable(GL_LIGHT1);
-  glLightfv(GL_LIGHT1, GL_AMBIENT, light1_ambient);
-  glLightfv(GL_LIGHT1, GL_DIFFUSE, light1_diffuse);
-  glLightfv(GL_LIGHT1, GL_POSITION, light1_position);
+  glLightModelfv(GL_LIGHT_MODEL_LOCAL_VIEWER, lmodel_local);
+  glLightModelfv(GL_LIGHT_MODEL_TWO_SIDE, lmodel_twoside);
+  glLightModelfv(GL_LIGHT_MODEL_AMBIENT, lmodel_ambient);
+  glEnable(GL_LIGHTING);
+
+  glMaterialfv(GL_FRONT, GL_AMBIENT, bevel_mat_ambient);
+  glMaterialfv(GL_FRONT, GL_SHININESS, bevel_mat_shininess);
+  glMaterialfv(GL_FRONT, GL_SPECULAR, bevel_mat_specular);
+  glMaterialfv(GL_FRONT, GL_DIFFUSE, bevel_mat_diffuse);
+
+  glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
+  glEnable(GL_COLOR_MATERIAL);
+  glShadeModel(GL_FLAT);
 
   leftMouseClick = leftMouseDoubleClick = middleMouseClick = rightMouseClick = leftMouseMaybeDoubleClick = false;
   leftMouseClickTimeMs = 0;
