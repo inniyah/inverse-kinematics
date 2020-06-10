@@ -7,7 +7,10 @@
 class Arm {
     private:
         vector<Segment*> segments;
-        Point3f base;
+        vector<Segment*> all_segments;
+
+        Point3f abs_base;
+        Point3f rel_base;
 
         Matrix<float,1,3> compute_jacobian_segment(int seg_num, Point3f goal_point, Vector3f angle);
 
@@ -16,6 +19,7 @@ class Arm {
 
         // get the total magnitude of all the segments in the arm
         float get_max_length();
+
     public:
         // constructors
         Arm();
@@ -33,8 +37,11 @@ class Arm {
         // solve the arm for some point
         void solve(Point3f goal_point, int life_count);
 
-        // update the segments
-        void update();
+        // update the segment list
+        void update_segments();
+
+        // update the reference points of the segments
+        void update_points();
 
         // draw the arm
         void draw();

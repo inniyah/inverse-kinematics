@@ -5,21 +5,21 @@
 static const bool VERBOSE = false;
 
 Arm::Arm() {
-    base = Point3f(0, 0, 0);
+    set_base(Point3f(0, 0, 0));
 }
 
 Arm::Arm(vector<Segment*>segs, Point3f pos) {
-    base = Point3f(0, 0, 0);
     set_segments(segs);
     set_base(pos);
 }
 
 void Arm::set_base(Point3f pos) {
-    base = pos;
+    abs_base = pos;
+    rel_base = Point3f(0, 0, 0);
 }
 
 Point3f Arm::get_base() {
-    return base;
+    return abs_base;
 }
 
 // returns the total magnitude of all the segments
@@ -32,6 +32,7 @@ float Arm::get_max_length() {
 }
 
 void Arm::set_segments(vector<Segment*> segs) {
+    all_segments = segs;
     segments = segs;
 }
 
@@ -39,13 +40,13 @@ template<typename _Matrix_Type_>
 _Matrix_Type_ pseudoInverse(const _Matrix_Type_ &a, double epsilon =
 std::numeric_limits<double>::epsilon())
 {
-        Eigen::JacobiSVD< _Matrix_Type_ > svd(a ,Eigen::ComputeThinU |
-    Eigen::ComputeThinV);
-        double tolerance = epsilon * std::max(a.cols(), a.rows())
-    *svd.singularValues().array().abs()(0);
-        return svd.matrixV() *  (svd.singularValues().array().abs() >
-    tolerance).select(svd.singularValues().array().inverse(),
-    0).matrix().asDiagonal() * svd.matrixU().adjoint();
+    Eigen::JacobiSVD< _Matrix_Type_ > svd(a ,Eigen::ComputeThinU |
+        Eigen::ComputeThinV);
+    double tolerance = epsilon * std::max(a.cols(), a.rows())
+        *svd.singularValues().array().abs()(0);
+    return svd.matrixV() *  (svd.singularValues().array().abs() >
+        tolerance).select(svd.singularValues().array().inverse(),
+        0).matrix().asDiagonal() * svd.matrixU().adjoint();
 }
 
 void Arm::solve(Point3f goal_point, int life_count) {
@@ -58,7 +59,7 @@ void Arm::solve(Point3f goal_point, int life_count) {
     int count = 0;
     float err_margin = 0.01;
 
-    goal_point -= base;
+    goal_point -= abs_base + rel_base;
     if (goal_point.norm() > get_max_length()) {
         goal_point = goal_point.normalized() * get_max_length();
     }
@@ -267,7 +268,7 @@ Point3f Arm::calculate_end_effector(int segment_num /* = -1 */) {
     // else don't mess with it
 
     // start with base
-    ret = base;
+    ret = abs_base;
     for(int i=0; i<=segment_num_to_calc; i++) {
         // add each segments end point vector to the base
         ret += segments[i]->get_end_point();
@@ -276,12 +277,28 @@ Point3f Arm::calculate_end_effector(int segment_num /* = -1 */) {
     return ret;
 }
 
-void Arm::update() {
-    Point3f start_point = base;
-    int seg_size = segments.size();
+void Arm::update_segments() {
+    update_points();
+    segments.clear();
+
+    rel_base = Point3f(0, 0, 0);
+
+    for (auto it = all_segments.rbegin(); it != all_segments.rend(); it++) {
+        if ((*it)->get_blocked()) break;
+        rel_base = ((*it)->get_start_point());
+        // Alternative to segments.insert(segments.begin, *it);
+        // Cleaner and more efficient than inserting and deleting.
+        segments.push_back(*it);
+        std::rotate(segments.rbegin(), segments.rbegin() + 1, segments.rend());
+    }
+}
+
+void Arm::update_points() {
+    Point3f start_point = abs_base;
+    int seg_size = all_segments.size();
     for(int i=0; i<seg_size; i++) {
-        segments[i]->set_start_point(start_point);
-        start_point = start_point + segments[i]->get_end_point();
+        all_segments[i]->set_start_point(start_point);
+        start_point = start_point + all_segments[i]->get_end_point();
     }
 }
 
@@ -294,11 +311,11 @@ void Arm::draw() {
     //~ glShadeModel(GL_SMOOTH);
     //~ glShadeModel(GL_FLAT);
 
-    int seg_size = segments.size();
-    Point3f start_point = base;
+    int seg_size = all_segments.size();
+    Point3f start_point = abs_base;
 
     for(int i=0; i<seg_size; i++) {
-        segments[i]->set_start_point(start_point);
-        start_point = segments[i]->draw();
+        all_segments[i]->set_start_point(start_point);
+        start_point = all_segments[i]->draw();
     }
 }

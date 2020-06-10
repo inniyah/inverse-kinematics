@@ -48,7 +48,7 @@ static int selViewport;
 float objPos[VIEWPORT_COLS * VIEWPORT_ROWS][3];
 float objRot[VIEWPORT_COLS * VIEWPORT_ROWS][16];
 
-static const int ITERATIONS_TO_SOLVE = 50;
+static const int ITERATIONS_TO_SOLVE = 20;
 
 static const float IDENTITY_MATRIX[16] = {
 	1.f, 0.f, 0.f, 0.f,
@@ -203,7 +203,7 @@ static void drawSkeleton(bool pick=false) {
 	for (auto it = arms.begin(); it != arms.end(); it++) {
 		std::string key = it->first;
 		Arm & arm = it->second;
-		arm.update();
+		arm.update_points();
 		//~ if (!pick) arm.draw();
 	}
 
@@ -293,7 +293,7 @@ static void setUpSkeleton() {
     for (auto it = arms.begin(); it != arms.end(); it++) {
         std::string key = it->first;
         Arm & arm = it->second;
-        arm.update();
+        arm.update_points();
     }
 
     skelMinY = INFINITY;
@@ -784,6 +784,12 @@ static void mouseHandler(int button, int state, int x, int y) {
 						if (selElement && selElementName.size()) {
 							bones[selElementName]->set_blocked(!bones[selElementName]->get_blocked());
 							printf ("[[ Bone %d (%s) set to %s ]]\n", selElement, selElementName.c_str(), bones[selElementName]->get_blocked() ? "blocked" : "not blocked");
+
+							for (auto it = arms.begin(); it != arms.end(); it++) {
+								std::string key = it->first;
+								Arm & arm = it->second;
+								arm.update_segments();
+							}
 						}
 
 						leftMouseClick = false;
