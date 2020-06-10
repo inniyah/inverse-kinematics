@@ -219,9 +219,9 @@ static void drawSkeleton(bool pick=false) {
 			Segment* & seg = it->second;
 			if (seg) {
 				if (seg->get_blocked())
-					glColor3f ( 1.0f, 0.0f, 0.0f );
+					glColor3f ( 0.5f, 0.0f, 0.2f );
 				else
-					glColor3f ( 0.0f, 1.0f, 0.0f );
+					glColor3f ( 0.0f, 0.5f, 0.2f );
 
 				Point3f end_point = seg->draw();
 

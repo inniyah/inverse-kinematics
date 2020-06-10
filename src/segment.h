@@ -55,7 +55,7 @@ class Segment {
         Point3f get_end_point();
 
         // draw takes in the startpoint and returns the endpoint
-        Point3f draw(int seg_count = 5);
+        Point3f draw(int seg_count = 7);
 
         Vector3f get_right();
         Vector3f get_up();
