@@ -195,7 +195,7 @@ static void drawRefLines() {
 }
 
 static void drawSkeleton(bool pick=false) {
-	static const int sphere_segs = 6;
+	static const int sphere_segs = 8;
 	glColor3f ( 1.0f, 1.0f, 1.0f );
 
 	if (!pick) glLoadName(0);
@@ -208,6 +208,12 @@ static void drawSkeleton(bool pick=false) {
 	}
 
 	if (!pick) {
+		glColor3f ( 1.0f, 1.0f, 0.0f );
+		glPushMatrix();
+			glTranslatef(0.0f, 0.0f, 0.0f);
+			glutSolidSphere(.06, sphere_segs, sphere_segs);
+		glPopMatrix();
+
 		for (auto it = bones.begin(); it != bones.end(); it++) {
 			std::string key = it->first;
 			Segment* & seg = it->second;
