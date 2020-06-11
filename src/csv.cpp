@@ -153,6 +153,8 @@ std::map<std::string, vector<Segment*> > readSkeletonFile(const std::string &fil
                 for (unsigned int i = 0; i < segments[parent_bone].size(); i++) 
                     segments[bone_name].push_back(segments[parent_bone][i]); 
                 Segment *segment = new Segment(next_segment_id++, (positions[bone_name] - positions[parent_bone]));
+                segment->name = bone_name;
+                segment->parent_name = parent_bone;
                 segments[bone_name].push_back(segment);
             }
 

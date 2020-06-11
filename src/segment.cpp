@@ -112,6 +112,14 @@ AngleAxisf Segment::get_T() {
     return T;
 }
 
+Vector3f Segment::get_axis() {
+    return T.axis();
+}
+
+float Segment::get_angle() {
+    return T.angle();
+}
+
 float Segment::get_mag() {
     return mag;
 }

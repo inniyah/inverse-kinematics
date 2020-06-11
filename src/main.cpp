@@ -287,6 +287,8 @@ static void setUpSkeleton() {
             Segment * seg = it->second.back();
             bones[key] = seg;
             SegmentNames[seg->get_segment_id()] = key;
+        } else {
+            bones[key] = nullptr;
         }
     }
 
@@ -969,6 +971,30 @@ static bool save() {
 
 	fputs("Data: pose\n", file_handler);
 	fprintf(file_handler, "Skeleton: %s\n", skeletonFilename.c_str());
+
+    for (auto it = bones.begin(); it != bones.end(); it++) {
+        std::string key = it->first;
+        Segment* & seg = it->second;
+        if (seg) {
+            Vector3f axis = seg->get_axis();
+            float angle = seg->get_angle();
+            float magnitude = seg->get_mag();
+            Point3f begin = seg->get_start_point();
+            Point3f end = begin + seg->get_end_point();
+            fprintf(file_handler, "Bone: \"%s\"; Parent: \"%s\"; Axis: %f, %f, %f; Angle: %f; Magnitude: %f; Begin: %f, %f, %f; End: %f, %f, %f\n",
+                seg->name.c_str(),
+                seg->parent_name.c_str(),
+                axis[0], axis[1], axis[2],
+                angle,
+                magnitude,
+                begin[0], begin[1], begin[2],
+                end[0], end[1], end[2]
+            );
+        } else {
+            fprintf(file_handler, "Root: \"%s\"\n", key.c_str());
+        }
+    }
+
 	fclose(file_handler);
 
 	return true;

@@ -62,6 +62,8 @@ class Segment {
         Vector3f get_z();
 
         AngleAxisf get_T();
+        Vector3f get_axis();
+        float get_angle();
         float get_mag();
 
         void save_transformation();
@@ -80,6 +82,9 @@ class Segment {
 
         // apply transformation
         void transform(AngleAxisf t);
+
+        std::string name;
+        std::string parent_name;
 };
 
 #endif // SEGMENT_H
