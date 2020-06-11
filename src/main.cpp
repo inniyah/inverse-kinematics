@@ -990,7 +990,8 @@ static bool save() {
 	fputs(
 		"\"Bone\",\"Parent\","
 		"\"BeginX\",\"BeginY\",\"BeginZ\","
-		"\"EndX\",\"EndY\",\"EndZ\",\"Magnitude\","
+		"\"DeltaX\",\"DeltaY\",\"DeltaZ\","
+		"\"Magnitude\","
 		"\"AxisX\",\"AxisY\",\"AxisZ\",\"Angle\","
 		"\"QuatX\",\"QuatY\",\"QuatZ\",\"QuatW\""
 		"\n", file_handler);
@@ -1002,7 +1003,7 @@ static bool save() {
                 key.c_str(),
                 "",
                 position[0], position[1], position[2],
-                position[0], position[1], position[2],
+                0.0f, 0.0f, 0.0f,
                 0.0f,
                 -1.0f, 0.0f, 0.0f,
                 -1.570796f,
@@ -1021,12 +1022,13 @@ static bool save() {
             float magnitude = seg->get_mag();
             Vector4f quat = seg->get_quat();
             Point3f begin = seg->get_start_point();
-            Point3f end = begin + seg->get_end_point();
+            Point3f delta = seg->get_end_point();
+            Point3f end = begin + delta;
             fprintf(file_handler, "\"%s\",\"%s\",\"%.8f\",\"%.8f\",\"%.8f\",\"%.8f\",\"%.8f\",\"%.8f\",\"%.8f\",\"%.8f\",\"%.8f\",\"%.8f\",\"%.8f\",\"%.8f\",\"%.8f\",\"%.8f\",\"%.8f\"\n",
                 seg->name.c_str(),
                 seg->parent_name.c_str(),
                 begin[0], begin[1], begin[2],
-                end[0], end[1], end[2],
+                delta[0], delta[1], delta[2],
                 magnitude,
                 axis[0], axis[1], axis[2],
                 angle,
