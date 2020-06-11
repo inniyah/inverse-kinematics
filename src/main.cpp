@@ -71,6 +71,7 @@ static const float XYZ_TO_ZYX_MATRIX[16] = {
 static GLUI *gluiSidePanel, *gluiBottomPanel;
 
 std::map<std::string, vector<Segment*> > readSkeletonFile(const std::string &filename);
+std::map<std::string, vector<Segment*> > readPoseFile(const std::string &filename);
 
 std::string skeletonFilename;
 
@@ -978,7 +979,7 @@ static bool save() {
 
 	fputs(
 		"\"Bone\",\"Parent\","
-		"\"PositionX\",\"PositionY\",\"PositionZ\","
+		"\"BeginX\",\"BeginY\",\"BeginZ\","
 		"\"EndX\",\"EndY\",\"EndZ\",\"Magnitude\","
 		"\"AxisX\",\"AxisY\",\"AxisZ\",\"Angle\","
 		"\"QuatX\",\"QuatY\",\"QuatZ\",\"QuatW\""
@@ -1030,9 +1031,42 @@ static bool save() {
 	return true;
 }
 
+static bool load() {
+	char const * filename;
+	char const * filter_patterns[2] = { "*.txt", "*.text" };
+
+	filename = tinyfd_openFileDialog("select filename to load", "", 2, filter_patterns, NULL, 0);
+
+	if (!filename) {
+		//~ tinyfd_messageBox("Error", "Open file name is NULL", "ok", "error", 0);
+		return false;
+	}
+
+	FILE * file_handler;
+#ifdef _WIN32
+	if (tinyfd_winUtf8)
+		lIn = _wfopen(tinyfd_utf8to16(filename), L"r"); /* the UTF-8 filename is converted to UTF-16 */
+	else
+#endif
+	file_handler = fopen(filename, "r");
+
+	if (!file_handler) {
+		tinyfd_messageBox("Error", "Can not open this file in read mode", "ok", "error", 1);
+		return false;
+	}
+
+	char buffer[1024];
+	buffer[0] = '\0';
+	fgets(buffer, sizeof(buffer), file_handler);
+
+	fclose(file_handler);
+
+	return true;
+}
 
 enum {
 	SAVE_BUTTON,
+	LOAD_BUTTON,
 	QUIT_BUTTON,
 };
 
@@ -1040,6 +1074,9 @@ static void gluiControlCallback(int control_id) {
 	switch (control_id) {
 		case SAVE_BUTTON:
 			save();
+			break;
+		case LOAD_BUTTON:
+			load();
 			break;
 		case QUIT_BUTTON:
 			exit(EXIT_SUCCESS);
@@ -1085,6 +1122,7 @@ int main(int argc, char* argv[]) {
 
   // Quit button
   gluiSidePanel->add_button ("Save", SAVE_BUTTON, gluiControlCallback);
+  gluiSidePanel->add_button ("Load", LOAD_BUTTON, gluiControlCallback);
   gluiSidePanel->add_button ("Quit", QUIT_BUTTON, gluiControlCallback);
 
   // Link window to GLUI

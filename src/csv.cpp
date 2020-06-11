@@ -110,7 +110,7 @@ std::map<std::string, vector<Segment*> > readSkeletonFile(const std::string &fil
             csv_header = row_data;
             for (std::vector<std::string>::size_type i = 0; i != row_data.size(); i++) {
                 std::string & field_name = csv_header[i];
-                transform(field_name.begin(), field_name.end(), field_name.begin(), ::toupper); 
+                transform(field_name.begin(), field_name.end(), field_name.begin(), ::toupper);
             }
         } else {
             std::string bone_name, parent_bone, symmetric_bone;
@@ -172,6 +172,68 @@ std::map<std::string, vector<Segment*> > readSkeletonFile(const std::string &fil
 
     for (auto const & bone: fat_bones) {
         std::cout << "Fat Bone: " << bone << std::endl;
+    }
+
+    return segments;
+}
+
+std::map<std::string, vector<Segment*> > readPoseFile(const std::string &filename) {
+    std::ifstream csv_file(filename);
+    std::vector<std::vector<std::string>> csv_data = readCSV(csv_file);
+
+    std::map<std::string, vector<Segment*> > segments;
+    std::map<std::string, Point3f > positions;
+
+    int row_number = 0;
+    int next_segment_id = 1;
+    std::vector<std::string> csv_header;
+    for (auto const & row_data: csv_data) {
+        if (!row_number) {
+            csv_header = row_data;
+            for (std::vector<std::string>::size_type i = 0; i != row_data.size(); i++) {
+                std::string & field_name = csv_header[i];
+                transform(field_name.begin(), field_name.end(), field_name.begin(), ::toupper);
+            }
+        } else {
+            std::string bone_name, parent_bone, symmetric_bone;
+            float begin_x, begin_y, begin_z, magnitude, axis_x, axis_y, axis_z;
+
+            for (std::vector<std::string>::size_type i = 0; i != row_data.size(); i++) {
+                if (std::string("BONE") == csv_header[i])
+                    bone_name = trim(row_data[i]);
+                if (std::string("BEGINX") == csv_header[i])
+                    begin_x = std::stof(trim(row_data[i]));
+                if (std::string("BEGINY") == csv_header[i])
+                    begin_y = std::stof(trim(row_data[i]));
+                if (std::string("BEGINZ") == csv_header[i])
+                    begin_z = std::stof(trim(row_data[i]));
+                if (std::string("PARENT") == csv_header[i])
+                    parent_bone = trim(row_data[i]);
+                if (std::string("MAGNITUDE") == csv_header[i])
+                    magnitude = std::stof(trim(row_data[i]));
+                if (std::string("AXISX") == csv_header[i])
+                    axis_x = std::stof(trim(row_data[i]));
+                if (std::string("AXISY") == csv_header[i])
+                    axis_y = std::stof(trim(row_data[i]));
+                if (std::string("AXISZ") == csv_header[i])
+                    axis_z = std::stof(trim(row_data[i]));
+            }
+
+            std::cout << "Bone: " << bone_name << " = " << begin_x << ", " << begin_y << ", " << begin_z << "; Parent = " << parent_bone << std::endl;
+
+            positions[bone_name] = Vector3f(begin_x, begin_y, begin_z);
+
+            if (parent_bone.length()) {
+                for (unsigned int i = 0; i < segments[parent_bone].size(); i++)
+                    segments[bone_name].push_back(segments[parent_bone][i]);
+                Segment *segment = new Segment(next_segment_id++, (positions[bone_name] - positions[parent_bone]));
+                segment->name = bone_name;
+                segment->parent_name = parent_bone;
+                segments[bone_name].push_back(segment);
+            }
+
+        }
+        row_number++;
     }
 
     return segments;
