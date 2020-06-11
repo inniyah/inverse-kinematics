@@ -120,6 +120,10 @@ float Segment::get_angle() {
     return T.angle();
 }
 
+Vector4f Segment::get_quat() {
+    return Quaternionf(T).coeffs();
+}
+
 float Segment::get_mag() {
     return mag;
 }

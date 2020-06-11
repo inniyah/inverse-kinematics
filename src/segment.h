@@ -64,6 +64,8 @@ class Segment {
         AngleAxisf get_T();
         Vector3f get_axis();
         float get_angle();
+        Vector4f get_quat();
+
         float get_mag();
 
         void save_transformation();

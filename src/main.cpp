@@ -76,6 +76,7 @@ std::string skeletonFilename;
 
 static std::map<std::string, std::vector<Segment*> > armsSegments;
 static std::map<std::string, Arm> arms;
+static std::map<std::string, Point3f> root_bones;
 static std::map<std::string, Segment*> bones;
 static std::map<int, std::string> SegmentNames;
 
@@ -208,11 +209,17 @@ static void drawSkeleton(bool pick=false) {
 	}
 
 	if (!pick) {
-		glColor3f ( 1.0f, 1.0f, 0.0f );
-		glPushMatrix();
-			glTranslatef(0.0f, 0.0f, 0.0f);
-			glutSolidSphere(.06, sphere_segs, sphere_segs);
-		glPopMatrix();
+
+		for (auto it = root_bones.begin(); it != root_bones.end(); it++) {
+			std::string key = it->first;
+			Point3f & position = it->second;
+
+			glColor3f ( 1.0f, 1.0f, 0.0f );
+			glPushMatrix();
+				glTranslatef(position[0], position[1], position[2]);
+				glutSolidSphere(.06, sphere_segs, sphere_segs);
+			glPopMatrix();
+		}
 
 		for (auto it = bones.begin(); it != bones.end(); it++) {
 			std::string key = it->first;
@@ -288,7 +295,7 @@ static void setUpSkeleton() {
             bones[key] = seg;
             SegmentNames[seg->get_segment_id()] = key;
         } else {
-            bones[key] = nullptr;
+            root_bones[key] = Point3f(0.0f, 0.0f, 0.0f);
         }
     }
 
@@ -952,7 +959,7 @@ static bool save() {
 	filename = tinyfd_saveFileDialog("select filename to save", "bones.txt", 2, filter_patterns, NULL);
 
 	if (!filename) {
-		tinyfd_messageBox("Error", "Save file name is NULL", "ok", "error", 1);
+		//~ tinyfd_messageBox("Error", "Save file name is NULL", "ok", "error", 1);
 		return false;
 	}
 
@@ -972,6 +979,15 @@ static bool save() {
 	fputs("Data: pose\n", file_handler);
 	fprintf(file_handler, "Skeleton: %s\n", skeletonFilename.c_str());
 
+    for (auto it = root_bones.begin(); it != root_bones.end(); it++) {
+            std::string key = it->first;
+            Point3f & position = it->second;
+            fprintf(file_handler, "Root: \"%s\"; Position: %f, %f, %f\n",
+                key.c_str(),
+                position[0], position[1], position[2]
+            );
+        }
+
     for (auto it = bones.begin(); it != bones.end(); it++) {
         std::string key = it->first;
         Segment* & seg = it->second;
@@ -979,19 +995,19 @@ static bool save() {
             Vector3f axis = seg->get_axis();
             float angle = seg->get_angle();
             float magnitude = seg->get_mag();
+            Vector4f quat = seg->get_quat();
             Point3f begin = seg->get_start_point();
             Point3f end = begin + seg->get_end_point();
-            fprintf(file_handler, "Bone: \"%s\"; Parent: \"%s\"; Axis: %f, %f, %f; Angle: %f; Magnitude: %f; Begin: %f, %f, %f; End: %f, %f, %f\n",
+            fprintf(file_handler, "Bone: \"%s\"; Parent: \"%s\"; Axis: %f, %f, %f; Quat: %f, %f, %f, %f; Angle: %f; Magnitude: %f; Begin: %f, %f, %f; End: %f, %f, %f\n",
                 seg->name.c_str(),
                 seg->parent_name.c_str(),
                 axis[0], axis[1], axis[2],
+                quat[0], quat[1], quat[2], quat[3],
                 angle,
                 magnitude,
                 begin[0], begin[1], begin[2],
                 end[0], end[1], end[2]
             );
-        } else {
-            fprintf(file_handler, "Root: \"%s\"\n", key.c_str());
         }
     }
 
