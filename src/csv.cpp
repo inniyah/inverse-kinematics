@@ -114,8 +114,8 @@ std::map<std::string, vector<Segment*> > readSkeletonFile(const std::string &fil
             }
         } else {
             std::string bone_name, parent_bone, symmetric_bone;
-            float x_coord, y_coord, z_coord;
-            bool is_foot, is_fat;
+            float x_coord = 0.0f, y_coord = 0.0f, z_coord = 0.0f;
+            bool is_foot = false, is_fat = false;
 
             for (std::vector<std::string>::size_type i = 0; i != row_data.size(); i++) {
                 if (std::string("BONE") == csv_header[i])
@@ -182,7 +182,6 @@ std::map<std::string, vector<Segment*> > readPoseFile(const std::string &filenam
     std::vector<std::vector<std::string>> csv_data = readCSV(csv_file);
 
     std::map<std::string, vector<Segment*> > segments;
-    std::map<std::string, Point3f > positions;
 
     int row_number = 0;
     int next_segment_id = 1;
@@ -196,7 +195,7 @@ std::map<std::string, vector<Segment*> > readPoseFile(const std::string &filenam
             }
         } else {
             std::string bone_name, parent_bone, symmetric_bone;
-            float begin_x, begin_y, begin_z, magnitude, axis_x, axis_y, axis_z;
+            float begin_x = 0.0f, begin_y = 0.0f, begin_z = 0.0f, magnitude = 0.0f, angle = 0.0f, axis_x = 0.0f, axis_y = 0.0f, axis_z = 0.0f;
 
             for (std::vector<std::string>::size_type i = 0; i != row_data.size(); i++) {
                 if (std::string("BONE") == csv_header[i])
@@ -211,6 +210,8 @@ std::map<std::string, vector<Segment*> > readPoseFile(const std::string &filenam
                     parent_bone = trim(row_data[i]);
                 if (std::string("MAGNITUDE") == csv_header[i])
                     magnitude = std::stof(trim(row_data[i]));
+                if (std::string("ANGLE") == csv_header[i])
+                    angle = std::stof(trim(row_data[i]));
                 if (std::string("AXISX") == csv_header[i])
                     axis_x = std::stof(trim(row_data[i]));
                 if (std::string("AXISY") == csv_header[i])
@@ -221,12 +222,10 @@ std::map<std::string, vector<Segment*> > readPoseFile(const std::string &filenam
 
             std::cout << "Bone: " << bone_name << " = " << begin_x << ", " << begin_y << ", " << begin_z << "; Parent = " << parent_bone << std::endl;
 
-            positions[bone_name] = Vector3f(begin_x, begin_y, begin_z);
-
             if (parent_bone.length()) {
                 for (unsigned int i = 0; i < segments[parent_bone].size(); i++)
                     segments[bone_name].push_back(segments[parent_bone][i]);
-                Segment *segment = new Segment(next_segment_id++, (positions[bone_name] - positions[parent_bone]));
+                Segment *segment = new Segment(next_segment_id++, magnitude, angle, Vector3f(axis_x, axis_y, axis_z));
                 segment->name = bone_name;
                 segment->parent_name = parent_bone;
                 segments[bone_name].push_back(segment);

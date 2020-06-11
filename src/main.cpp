@@ -73,8 +73,6 @@ static GLUI *gluiSidePanel, *gluiBottomPanel;
 std::map<std::string, vector<Segment*> > readSkeletonFile(const std::string &filename);
 std::map<std::string, vector<Segment*> > readPoseFile(const std::string &filename);
 
-std::string skeletonFilename;
-
 static std::map<std::string, std::vector<Segment*> > armsSegments;
 static std::map<std::string, Arm> arms;
 static std::map<std::string, Point3f> root_bones;
@@ -283,8 +281,13 @@ static void updateSkeleton() {
 }
 
 static void setUpSkeleton() {
-    skeletonFilename = "skeletons/human.csv";
+    std::string skeletonFilename = "skeletons/human.csv";
     std::map<std::string, vector<Segment*> > armsSegments = readSkeletonFile(skeletonFilename);
+
+    arms.clear();
+    bones.clear();
+    root_bones.clear();
+    SegmentNames.clear();
 
     for (auto it = armsSegments.begin(); it != armsSegments.end(); it++) {
         std::string key = it->first;
@@ -923,13 +926,14 @@ static void init() {
   leftMouseClick = leftMouseDoubleClick = middleMouseClick = rightMouseClick = leftMouseMaybeDoubleClick = false;
   leftMouseClickTimeMs = 0;
 
-	selElement = 0;
-	selElementName = "";
-	selViewport = 0;
-	memset(viewports, 0, sizeof(viewports));
+  memset(viewports, 0, sizeof(viewports));
 
-	memset(objPos, 0, sizeof(objPos));
-	memset(objRot, 0, sizeof(objRot));
+  selElement = 0;
+  selElementName = "";
+  selViewport = 0;
+
+  memset(objPos, 0, sizeof(objPos));
+  memset(objRot, 0, sizeof(objRot));
 }
 
 static void Usage() {
@@ -985,9 +989,6 @@ static bool save() {
 		"\"QuatX\",\"QuatY\",\"QuatZ\",\"QuatW\""
 		"\n", file_handler);
 
-	fputs("Data: pose\n", file_handler);
-	fprintf(file_handler, "Skeleton: %s\n", skeletonFilename.c_str());
-
     for (auto it = root_bones.begin(); it != root_bones.end(); it++) {
             std::string key = it->first;
             Point3f & position = it->second;
@@ -1042,6 +1043,7 @@ static bool load() {
 		return false;
 	}
 
+#if 0
 	FILE * file_handler;
 #ifdef _WIN32
 	if (tinyfd_winUtf8)
@@ -1060,6 +1062,9 @@ static bool load() {
 	fgets(buffer, sizeof(buffer), file_handler);
 
 	fclose(file_handler);
+#endif
+
+	readPoseFile(filename);
 
 	return true;
 }

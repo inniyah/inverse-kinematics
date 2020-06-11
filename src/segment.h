@@ -31,6 +31,7 @@ class Segment {
         // constructors
         Segment(int id);
         Segment(int id, float magnitude, JointType jt = BALLJOINT);
+        Segment(int id, float magnitude, float angle, const Vector3f &axis, JointType jt = BALLJOINT);
         Segment(int id, const Vector3f &v, JointType jt = BALLJOINT);
 
         inline int get_segment_id() const {

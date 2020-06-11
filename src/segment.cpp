@@ -13,6 +13,13 @@ Segment::Segment(int id, float magnitude, JointType jt) : Segment(id) {
     joint = jt;
 }
 
+Segment::Segment(int id, float magnitude, float angle, const Vector3f &axis, JointType jt) : segment_id(id), blocked(false) {
+    start_point = Point3f(0, 0, 0);
+    T = AngleAxisf(angle, axis);
+    joint = jt;
+}
+
+
 Segment::Segment(int id, const Vector3f &v, JointType jt) : segment_id(id), blocked(false) {
     start_point = Point3f(0, 0, 0);
     Vector3f vn = v.normalized();
