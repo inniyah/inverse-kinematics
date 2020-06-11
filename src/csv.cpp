@@ -220,7 +220,7 @@ std::map<std::string, vector<Segment*> > readPoseFile(const std::string &filenam
                     axis_z = std::stof(trim(row_data[i]));
             }
 
-            std::cout << "Bone: " << bone_name << " = " << begin_x << ", " << begin_y << ", " << begin_z << "; Parent = " << parent_bone << std::endl;
+            std::cout << "Bone: " << bone_name << " = " << magnitude << ", " << angle << ", " << axis_x << ", " << axis_y << ", " << axis_z << "; Parent = " << parent_bone << std::endl;
 
             if (parent_bone.length()) {
                 for (unsigned int i = 0; i < segments[parent_bone].size(); i++)

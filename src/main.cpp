@@ -75,7 +75,7 @@ std::map<std::string, vector<Segment*> > readPoseFile(const std::string &filenam
 
 static std::map<std::string, std::vector<Segment*> > armsSegments;
 static std::map<std::string, Arm> arms;
-static std::map<std::string, Point3f> root_bones;
+static std::map<std::string, Point3f> rootBones;
 static std::map<std::string, Segment*> bones;
 static std::map<int, std::string> SegmentNames;
 
@@ -209,7 +209,7 @@ static void drawSkeleton(bool pick=false) {
 
 	if (!pick) {
 
-		for (auto it = root_bones.begin(); it != root_bones.end(); it++) {
+		for (auto it = rootBones.begin(); it != rootBones.end(); it++) {
 			std::string key = it->first;
 			Point3f & position = it->second;
 
@@ -280,35 +280,7 @@ static void updateSkeleton() {
     }
 }
 
-static void setUpSkeleton() {
-    std::string skeletonFilename = "skeletons/human.csv";
-    std::map<std::string, vector<Segment*> > armsSegments = readSkeletonFile(skeletonFilename);
-
-    arms.clear();
-    bones.clear();
-    root_bones.clear();
-    SegmentNames.clear();
-
-    for (auto it = armsSegments.begin(); it != armsSegments.end(); it++) {
-        std::string key = it->first;
-        std::vector<Segment*> & segs = it->second;
-        arms[key].set_segments(segs);
-
-        if (it->second.size()) {
-            Segment * seg = it->second.back();
-            bones[key] = seg;
-            SegmentNames[seg->get_segment_id()] = key;
-        } else {
-            root_bones[key] = Point3f(0.0f, 0.0f, 0.0f);
-        }
-    }
-
-    for (auto it = arms.begin(); it != arms.end(); it++) {
-        std::string key = it->first;
-        Arm & arm = it->second;
-        arm.update_points();
-    }
-
+static void calculateSkeletonDimensions() {
     skelMinY = INFINITY;
     skelMaxY = -INFINITY;
 
@@ -327,6 +299,40 @@ static void setUpSkeleton() {
 
             refSegmentLines.push_back(line);
         }
+    }
+}
+
+static void setUpSkeleton(std::map<std::string, vector<Segment*> > armsSegments) {
+    arms.clear();
+    bones.clear();
+    rootBones.clear();
+    SegmentNames.clear();
+    refSegmentLines.clear();
+
+	printf ("Skeleton: ");
+
+    for (auto it = armsSegments.begin(); it != armsSegments.end(); it++) {
+        std::string key = it->first;
+        std::vector<Segment*> & segs = it->second;
+        arms[key].set_segments(segs);
+
+        if (it->second.size()) {
+            Segment * seg = it->second.back();
+            bones[key] = seg;
+            SegmentNames[seg->get_segment_id()] = key;
+			printf ("[%s -> %s (%f)] ", seg->parent_name.c_str(), key.c_str(), seg->get_mag());
+        } else {
+            rootBones[key] = Point3f(0.0f, 0.0f, 0.0f);
+			printf ("<%s> ", key.c_str());
+        }
+    }
+
+	printf ("\n");
+
+    for (auto it = arms.begin(); it != arms.end(); it++) {
+        std::string key = it->first;
+        Arm & arm = it->second;
+        arm.update_points();
     }
 }
 
@@ -989,7 +995,7 @@ static bool save() {
 		"\"QuatX\",\"QuatY\",\"QuatZ\",\"QuatW\""
 		"\n", file_handler);
 
-    for (auto it = root_bones.begin(); it != root_bones.end(); it++) {
+    for (auto it = rootBones.begin(); it != rootBones.end(); it++) {
             std::string key = it->first;
             Point3f & position = it->second;
             fprintf(file_handler, "\"%s\",\"%s\",\"%.8f\",\"%.8f\",\"%.8f\",\"%.8f\",\"%.8f\",\"%.8f\",\"%.8f\",\"%.8f\",\"%.8f\",\"%.8f\",\"%.8f\",\"%.8f\",\"%.8f\",\"%.8f\",\"%.8f\"\n",
@@ -1004,9 +1010,11 @@ static bool save() {
             );
         }
 
-    for (auto it = bones.begin(); it != bones.end(); it++) {
-        std::string key = it->first;
-        Segment* & seg = it->second;
+    for (auto it = SegmentNames.begin(); it != SegmentNames.end(); it++) {
+        int num = it->first;
+        std::string & name = it->second;
+        Segment* & seg = bones[name];
+
         if (seg) {
             Vector3f axis = seg->get_axis();
             float angle = seg->get_angle();
@@ -1064,7 +1072,10 @@ static bool load() {
 	fclose(file_handler);
 #endif
 
-	readPoseFile(filename);
+	std::map<std::string, vector<Segment*> > armsSegments = readPoseFile(filename);
+	setUpSkeleton(armsSegments);
+
+	glutPostRedisplay();
 
 	return true;
 }
@@ -1090,7 +1101,10 @@ static void gluiControlCallback(int control_id) {
 }
 
 int main(int argc, char* argv[]) {
-  setUpSkeleton();
+  std::string skeletonFilename = "skeletons/human.csv";
+  std::map<std::string, vector<Segment*> > armsSegments = readSkeletonFile(skeletonFilename);
+  setUpSkeleton(armsSegments);
+  calculateSkeletonDimensions();
 
   glutInit(&argc, argv);
   glutInitDisplayMode( GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH );

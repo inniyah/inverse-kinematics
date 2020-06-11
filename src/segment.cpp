@@ -3,7 +3,7 @@
 #include <cmath>
 #include <GL/gl.h>
 
-Segment::Segment(int id) : segment_id(id), blocked(false) {
+Segment::Segment(int id) : segment_id(id), blocked(false), mag(0.0f) {
     start_point = Point3f(0, 0, 0);
     T = T.Identity();
 }
@@ -15,6 +15,7 @@ Segment::Segment(int id, float magnitude, JointType jt) : Segment(id) {
 
 Segment::Segment(int id, float magnitude, float angle, const Vector3f &axis, JointType jt) : segment_id(id), blocked(false) {
     start_point = Point3f(0, 0, 0);
+    mag = magnitude;
     T = AngleAxisf(angle, axis);
     joint = jt;
 }
