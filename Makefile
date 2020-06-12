@@ -46,8 +46,16 @@ LIBS= \
 	-lm -lglut
 
 BINARY= Demo
+
 BINARY_SRCS= \
-	src/arm.cpp  src/main.cpp  src/point.cpp  src/segment.cpp src/csv.cpp src/tinyfiledialogs.cpp
+	src/arm.cpp \
+	src/main.cpp \
+	src/point.cpp \
+	src/segment.cpp \
+	src/csv.cpp \
+	src/tinyfiledialogs.cpp \
+	src/arghelper.cpp
+
 BINARY_OBJS= $(subst .cpp,.o,$(BINARY_SRCS))
 
 all: $(BINARY)

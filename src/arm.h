@@ -1,5 +1,7 @@
-#ifndef ARM_H
-#define ARM_H
+#pragma once
+
+#ifndef ARM_H_A2B05F3A_AC93_11EA_BA05_876B23B9AF26
+#define ARM_H_A2B05F3A_AC93_11EA_BA05_876B23B9AF26
 
 #include "include.h"
 #include "segment.h"
@@ -47,4 +49,4 @@ class Arm {
         void draw();
 };
 
-#endif
+#endif // ARM_H_A2B05F3A_AC93_11EA_BA05_876B23B9AF26

@@ -49,7 +49,7 @@ Point3f Segment::get_end_point() {
     return a;
 }
 
-Point3f Segment::draw(int seg_count) {
+Point3f Segment::draw(int first, int last, int seg_count) {
     Point3f a0, a1, a2;
 
     // calculate the end point of the segment
@@ -65,7 +65,7 @@ Point3f Segment::draw(int seg_count) {
     float scale = 0.1f * mag;
 
     // number of segments to divide the draw polygon into
-    for (int i=0; i<seg_count; i++) {
+    for (int i = first; i < last; i++) {
         // a0 and a1 are points on the unit circle divided by seg_count
         // a0 is i+1 so the points go in counter-clockwise order
         a0 = Point3f(

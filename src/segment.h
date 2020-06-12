@@ -1,5 +1,7 @@
-#ifndef SEGMENT_H
-#define SEGMENT_H
+#pragma once
+
+#ifndef SEGMENT_H_A2B06138_AC93_11EA_BA08_A7E4782DC242
+#define SEGMENT_H_A2B06138_AC93_11EA_BA08_A7E4782DC242
 
 #include "include.h"
 
@@ -56,7 +58,11 @@ class Segment {
         Point3f get_end_point();
 
         // draw takes in the startpoint and returns the endpoint
-        Point3f draw(int seg_count = 7);
+        Point3f draw(int first, int last, int seg_count = 7);
+
+        inline Point3f draw(int seg_count = 7) {
+            return draw(0, seg_count, seg_count);
+        }
 
         Vector3f get_right();
         Vector3f get_up();
@@ -90,4 +96,4 @@ class Segment {
         std::string parent_name;
 };
 
-#endif // SEGMENT_H
+#endif // SEGMENT_H_A2B06138_AC93_11EA_BA08_A7E4782DC242

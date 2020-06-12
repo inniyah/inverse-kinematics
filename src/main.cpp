@@ -3,6 +3,7 @@
 #include "point.h"
 #include "segment.h"
 #include "tinyfiledialogs.h"
+#include "arghelper.h"
 
 #include <string>
 #include <map>
@@ -1104,6 +1105,22 @@ static void gluiControlCallback(int control_id) {
 
 int main(int argc, char* argv[]) {
   std::string skeletonFilename = "skeletons/human.csv";
+
+  if (argc > 1) {
+    dsr::ArgumentHelper ah;
+
+    ah.new_string("skeleton.csv", "Input file with the skeleton definition", skeletonFilename);
+
+    ah.set_description("Skeleton Poser");
+    ah.set_author("Miriam Ruiz <miriam@debian.org>");
+    ah.set_version(0.1f);
+    ah.set_build_date(__DATE__);
+
+    ah.process(argc, argv);
+    if (dsr::verbose)
+      ah.write_values(std::cout);
+  }
+
   std::map<std::string, vector<Segment*> > armsSegments = readSkeletonFile(skeletonFilename);
   setUpSkeleton(armsSegments);
   calculateSkeletonDimensions();

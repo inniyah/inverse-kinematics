@@ -91,8 +91,8 @@ misrepresented as being the original software.
 3. This notice may not be removed or altered from any source distribution.
 */
 
-#ifndef TINYFILEDIALOGS_H
-#define TINYFILEDIALOGS_H
+#ifndef TINYFILEDIALOGS_H_A2B061E2_AC93_11EA_BA09_2BB935D5C28F
+#define TINYFILEDIALOGS_H_A2B061E2_AC93_11EA_BA09_2BB935D5C28F
 
 #ifdef	__cplusplus
 extern "C" { /* if tinydialogs.c is compiled as C++ code rather than C code, you may need to comment this out
@@ -283,7 +283,7 @@ char * tinyfd_arrayDialog(
 } /*extern "C"*/
 #endif
 
-#endif /* TINYFILEDIALOGS_H */
+#endif /* TINYFILEDIALOGS_H_A2B061E2_AC93_11EA_BA09_2BB935D5C28F */
 
 /*
 - This is not for android nor ios.
