@@ -45,7 +45,7 @@ INCS= \
 LIBS= \
 	-lm -lglut
 
-BINARY= Demo
+BINARY= SkeletonPoser
 
 BINARY_SRCS= \
 	src/arm.cpp \

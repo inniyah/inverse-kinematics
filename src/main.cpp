@@ -46,8 +46,16 @@ static const int VIEWPORT_ROWS = 2;
 static GLint viewports[VIEWPORT_COLS * VIEWPORT_ROWS][4];
 static int selViewport;
 
+static enum {
+	VP_UP,
+	VP_FRONT,
+	VP_SIDE,
+	VP_FOUR
+} viewportState = VP_FOUR;
+
 float objPos[VIEWPORT_COLS * VIEWPORT_ROWS][3];
 float objRot[VIEWPORT_COLS * VIEWPORT_ROWS][16];
+GLUI_Rotation *gluiRot[VIEWPORT_COLS * VIEWPORT_ROWS];
 
 static const int ITERATIONS_TO_SOLVE = 20;
 
@@ -412,35 +420,43 @@ void displayHandler() {
 
 	// Perspective view: Viewport 1 (Down-Right)
 	GLint (&vp)[4] = viewports[1];
-	ViewportScissor(vp[0], vp[1], vp[2], vp[3]);
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	adjustViewMatrices(1);
-	drawScene();
+	if (vp[0] || vp[1] || vp[2] || vp[3]) {
+		ViewportScissor(vp[0], vp[1], vp[2], vp[3]);
+		glMatrixMode(GL_PROJECTION);
+		glLoadIdentity();
+		adjustViewMatrices(1);
+		drawScene();
+	}
 
 	// View from above (Y): Viewport 0 (Down-Left)
 	GLint (&vp_y)[4] = viewports[0];
-	ViewportScissor(vp_y[0], vp_y[1], vp_y[2], vp_y[3]);
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	adjustViewMatrices(0);
-	drawScene();
+	if (vp_y[0] || vp_y[1] || vp_y[2] || vp_y[3]) {
+		ViewportScissor(vp_y[0], vp_y[1], vp_y[2], vp_y[3]);
+		glMatrixMode(GL_PROJECTION);
+		glLoadIdentity();
+		adjustViewMatrices(0);
+		drawScene();
+	}
 
 	// View from front (Z): Viewport 2 (Up-Left)
 	GLint (&vp_z)[4] = viewports[2];
-	ViewportScissor(vp_z[0], vp_z[1], vp_z[2], vp_z[3]);
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	adjustViewMatrices(2);
-	drawScene();
+	if (vp_z[0] || vp_z[1] || vp_z[2] || vp_z[3]) {
+		ViewportScissor(vp_z[0], vp_z[1], vp_z[2], vp_z[3]);
+		glMatrixMode(GL_PROJECTION);
+		glLoadIdentity();
+		adjustViewMatrices(2);
+		drawScene();
+	}
 
 	// View from side (X): Viewport 3 (Up-Right)
 	GLint (&vp_x)[4] = viewports[3];
-	ViewportScissor(vp_x[0], vp_x[1], vp_x[2], vp_x[3]);
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	adjustViewMatrices(3);
-	drawScene();
+	if (vp_x[0] || vp_x[1] || vp_x[2] || vp_x[3]) {
+		ViewportScissor(vp_x[0], vp_x[1], vp_x[2], vp_x[3]);
+		glMatrixMode(GL_PROJECTION);
+		glLoadIdentity();
+		adjustViewMatrices(3);
+		drawScene();
+	}
 
 	glutSwapBuffers();
 }
@@ -625,18 +641,34 @@ static bool computeXYCoords(GLint viewport[4], int mousex, int mousey, GLfloat *
 }
 
 static void reshapeHandler(int width, int height) {
-  screenWidth = width;
-  screenHeight = height;
-  screenAspect = (float)width / (float)height;
+	screenWidth = width;
+	screenHeight = height;
+	screenAspect = (float)width / (float)height;
 
-  for (int y = 0; y < VIEWPORT_ROWS; y++)
-    for (int x = 0; x < VIEWPORT_COLS; x++) {
-      GLint (&viewport)[4] = viewports[x + VIEWPORT_COLS*y];
-      viewport[0] = x * width / VIEWPORT_COLS;
-      viewport[1] = y * height / VIEWPORT_ROWS;
-      viewport[2] = width / VIEWPORT_COLS;
-      viewport[3] = height / VIEWPORT_ROWS;
-  }
+	memset(viewports, 0, sizeof(viewports));
+
+	if (viewportState == VP_FOUR) {
+		for (int y = 0; y < VIEWPORT_ROWS; y++)
+			for (int x = 0; x < VIEWPORT_COLS; x++) {
+				GLint (&viewport)[4] = viewports[x + VIEWPORT_COLS*y];
+				viewport[0] = x * width / VIEWPORT_COLS;
+				viewport[1] = y * height / VIEWPORT_ROWS;
+				viewport[2] = width / VIEWPORT_COLS;
+				viewport[3] = height / VIEWPORT_ROWS;
+			}
+	} else if (viewportState == VP_UP) {
+		GLint (&viewport)[4] = viewports[0];
+		viewport[2] = width;
+		viewport[3] = height;
+	} else if (viewportState == VP_FRONT) {
+		GLint (&viewport)[4] = viewports[2];
+		viewport[2] = width;
+		viewport[3] = height;
+	} else if (viewportState == VP_SIDE) {
+		GLint (&viewport)[4] = viewports[3];
+		viewport[2] = width;
+		viewport[3] = height;
+	}
 
   //~ glViewport(0, 0, screenWidth, screenHeight);
   //~ glGetIntegerv(GL_VIEWPORT, viewports[0]);
@@ -783,7 +815,16 @@ static void mouseHandler(int button, int state, int x, int y) {
 					printf ("Mouse Left Button Pressed (Down)...\n");
 					leftMouseClick = true;
 
-					selViewport = (x * VIEWPORT_COLS / screenWidth) + VIEWPORT_COLS * (VIEWPORT_ROWS - 1 - (y * VIEWPORT_ROWS / screenHeight));
+					if (viewportState == VP_FOUR) {
+						selViewport = (x * VIEWPORT_COLS / screenWidth) + VIEWPORT_COLS * (VIEWPORT_ROWS - 1 - (y * VIEWPORT_ROWS / screenHeight));
+					} else if (viewportState == VP_UP) {
+						selViewport = 0;
+					} else if (viewportState == VP_FRONT) {
+						selViewport = 2;
+					} else if (viewportState == VP_SIDE) {
+						selViewport = 3;
+					}
+
 					printf("Viewport: %d\n", selViewport);
 					selElement = selectElement(viewports[selViewport], mousePosX, mousePosY);
 					if (selElement) {
@@ -966,9 +1007,12 @@ static void menuHandler(int choice) {
 
 static bool save() {
 	char const * filename;
-	char const * filter_patterns[2] = { "*.txt", "*.text" };
+	char const * filter_patterns[] = {"*.CSV", "*.csv"};
 
-	filename = tinyfd_saveFileDialog("select filename to save", "bones.txt", 2, filter_patterns, NULL);
+	filename = tinyfd_saveFileDialog("select filename to save",
+		"bones.csv",
+		sizeof(filter_patterns)/sizeof(filter_patterns[0]), filter_patterns,
+		NULL);
 
 	if (!filename) {
 		//~ tinyfd_messageBox("Error", "Save file name is NULL", "ok", "error", 1);
@@ -1045,9 +1089,12 @@ static bool save() {
 
 static bool load() {
 	char const * filename;
-	char const * filter_patterns[2] = { "*.txt", "*.text" };
+	char const * filter_patterns[] = {"*.CSV", "*.csv"};
 
-	filename = tinyfd_openFileDialog("select filename to load", "", 2, filter_patterns, NULL, 0);
+	filename = tinyfd_openFileDialog("select filename to load",
+		"*",
+		sizeof(filter_patterns)/sizeof(filter_patterns[0]), filter_patterns,
+		NULL, 0);
 
 	if (!filename) {
 		//~ tinyfd_messageBox("Error", "Open file name is NULL", "ok", "error", 0);
@@ -1087,7 +1134,43 @@ enum {
 	SAVE_BUTTON,
 	LOAD_BUTTON,
 	QUIT_BUTTON,
+
+	POV_UP_BUTTON,
+	POV_FRONT_BUTTON,
+	POV_SIDE_BUTTON,
+	POV_FOUR_BUTTON,
 };
+
+void resetPov() {
+  // Viewport 0: Up
+  memcpy(objRot[0], IDENTITY_MATRIX, sizeof(IDENTITY_MATRIX));
+  objPos[0][0] = objPos[0][1] = 0.0f;
+  objPos[0][2] = 3.0f;
+  gluiRot[0]->reset();
+
+  // Viewport 2: Front
+  memcpy(objRot[2], IDENTITY_MATRIX, sizeof(IDENTITY_MATRIX));
+  objPos[2][0] = objPos[2][1] = 0.0f;
+  objPos[2][2] = 3.0f;
+  gluiRot[2]->reset();
+
+  // Viewport 3: Side
+  memcpy(objRot[3], IDENTITY_MATRIX, sizeof(IDENTITY_MATRIX));
+  objPos[3][0] = objPos[3][1] = 0.0f;
+  objPos[3][2] = 3.0f;
+  gluiRot[3]->reset();
+
+  // Viewport 1: Perspective
+  memcpy(objRot[1], IDENTITY_MATRIX, sizeof(IDENTITY_MATRIX));
+  objPos[1][0] = objPos[1][1] = 0.0f;
+  objPos[1][2] = 3.0f;
+  gluiRot[1]->reset();
+
+  reshapeHandler(screenWidth, screenHeight);
+
+  gluiBottomPanel->refresh();
+  glutPostRedisplay();
+}
 
 static void gluiControlCallback(int control_id) {
 	switch (control_id) {
@@ -1099,6 +1182,23 @@ static void gluiControlCallback(int control_id) {
 			break;
 		case QUIT_BUTTON:
 			exit(EXIT_SUCCESS);
+			break;
+
+		case POV_UP_BUTTON:
+			viewportState = VP_UP;
+			resetPov();
+			break;
+		case POV_FRONT_BUTTON:
+			viewportState = VP_FRONT;
+			resetPov();
+			break;
+		case POV_SIDE_BUTTON:
+			viewportState = VP_SIDE;
+			resetPov();
+			break;
+		case POV_FOUR_BUTTON:
+			viewportState = VP_FOUR;
+			resetPov();
 			break;
 	}
 }
@@ -1137,7 +1237,7 @@ int main(int argc, char* argv[]) {
   glutDisplayFunc(displayHandler);
   GLUI_Master.set_glutReshapeFunc(reshapeHandler);
   GLUI_Master.set_glutKeyboardFunc(keyboardHandler);
-  GLUI_Master.set_glutSpecialFunc( specialHandler );
+  GLUI_Master.set_glutSpecialFunc(specialHandler);
   GLUI_Master.set_glutMouseFunc(mouseHandler);
   glutMotionFunc(motionHandler);
   glutVisibilityFunc(visibilityHandler);
@@ -1158,7 +1258,12 @@ int main(int argc, char* argv[]) {
 
   gluiSidePanel = GLUI_Master.create_glui_subwindow(mainWindow, GLUI_SUBWINDOW_RIGHT);
 
-  // Quit button
+  // Buttons
+  gluiSidePanel->add_button ("Up", POV_UP_BUTTON, gluiControlCallback);
+  gluiSidePanel->add_button ("Front", POV_FRONT_BUTTON, gluiControlCallback);
+  gluiSidePanel->add_button ("Side", POV_SIDE_BUTTON, gluiControlCallback);
+  gluiSidePanel->add_button ("4 Views", POV_FOUR_BUTTON, gluiControlCallback);
+
   gluiSidePanel->add_button ("Save", SAVE_BUTTON, gluiControlCallback);
   gluiSidePanel->add_button ("Load", LOAD_BUTTON, gluiControlCallback);
   gluiSidePanel->add_button ("Quit", QUIT_BUTTON, gluiControlCallback);
@@ -1172,7 +1277,6 @@ int main(int argc, char* argv[]) {
   gluiBottomPanel->set_main_gfx_window(mainWindow);
 
   GLUI_Translation *t = nullptr;
-  GLUI_Rotation *r = nullptr;
 
   // Viewport 0: Up
 
@@ -1189,8 +1293,8 @@ int main(int argc, char* argv[]) {
   new GLUI_Column( gluiBottomPanel, false );
 
   memcpy(objRot[0], IDENTITY_MATRIX, sizeof(IDENTITY_MATRIX));
-  r = new GLUI_Rotation(gluiBottomPanel, "Up Rot", objRot[0] );
-  r->set_spin( 1.0 );
+  gluiRot[0] = new GLUI_Rotation(gluiBottomPanel, "Up Rot", objRot[0] );
+  gluiRot[0]->set_spin( 1.0 );
 
   new GLUI_Column( gluiBottomPanel, false );
 
@@ -1209,8 +1313,8 @@ int main(int argc, char* argv[]) {
   new GLUI_Column( gluiBottomPanel, false );
 
   memcpy(objRot[2], IDENTITY_MATRIX, sizeof(IDENTITY_MATRIX));
-  r = new GLUI_Rotation(gluiBottomPanel, "Front Rot", objRot[2] );
-  r->set_spin( 1.0 );
+  gluiRot[2] = new GLUI_Rotation(gluiBottomPanel, "Front Rot", objRot[2] );
+  gluiRot[2]->set_spin( 1.0 );
 
   new GLUI_Column( gluiBottomPanel, false );
 
@@ -1229,8 +1333,8 @@ int main(int argc, char* argv[]) {
   new GLUI_Column( gluiBottomPanel, false );
 
   memcpy(objRot[3], IDENTITY_MATRIX, sizeof(IDENTITY_MATRIX));
-  r = new GLUI_Rotation(gluiBottomPanel, "Side Rot", objRot[3] );
-  r->set_spin( 1.0 );
+  gluiRot[3] = new GLUI_Rotation(gluiBottomPanel, "Side Rot", objRot[3] );
+  gluiRot[3]->set_spin( 1.0 );
 
   new GLUI_Column( gluiBottomPanel, false );
 
@@ -1249,8 +1353,8 @@ int main(int argc, char* argv[]) {
   new GLUI_Column( gluiBottomPanel, false );
 
   memcpy(objRot[1], IDENTITY_MATRIX, sizeof(IDENTITY_MATRIX));
-  r = new GLUI_Rotation(gluiBottomPanel, "Persp Rot", objRot[1] );
-  r->set_spin( 1.0 );
+  gluiRot[1] = new GLUI_Rotation(gluiBottomPanel, "Persp Rot", objRot[1] );
+  gluiRot[1]->set_spin( 1.0 );
 
   new GLUI_Column( gluiBottomPanel, false );
 
